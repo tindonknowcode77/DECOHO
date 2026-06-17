@@ -14,6 +14,7 @@ import {
 } from './decor-plan.schema';
 
 export type GenerateDecorPlanResponse = {
+  decorPlanId: string;
   estimatedCost: number;
   designSuggestion: string;
   recommendedProducts: RecommendedProductResponse[];
@@ -76,7 +77,7 @@ export class DecorPlanService {
         productNames: recommendedProducts.map((product) => product.name),
       });
 
-    await this.decorPlanModel.create({
+    const decorPlan = await this.decorPlanModel.create({
       userId: new Types.ObjectId(userId),
       roomId: new Types.ObjectId(createDecorPlanDto.roomId),
       budget: createDecorPlanDto.budget,
@@ -88,6 +89,7 @@ export class DecorPlanService {
     });
 
     return {
+      decorPlanId: decorPlan.id,
       estimatedCost,
       designSuggestion,
       recommendedProducts: recommendedProducts.map((product) =>

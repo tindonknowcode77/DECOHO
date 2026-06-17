@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "cc2f7201-3b24-4a78-a30d-decoho000001",
     "name": "DECOHO Backend API",
-    "description": "Complete single-file Postman collection for DECOHO Backend. Requests only; no saved response examples. Run Register/Login to set JWT variables automatically. Admin routes require an ADMIN access token.",
+    "description": "Single-file Postman collection for DECOHO Backend. Run folders from top to bottom. Collection scripts automatically store accessToken, refreshToken, userId, roomId, productId, decorPlanId, and favoriteId from real API responses. No saved response examples are included, so the sidebar only shows folders and requests.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -30,7 +30,55 @@
       "script": {
         "type": "text/javascript",
         "exec": [
-          ""
+          "function readJson() {",
+          "  try { return pm.response.json(); } catch (error) { return null; }",
+          "}",
+          "",
+          "function setVar(key, value) {",
+          "  if (value === undefined || value === null || value === \"\") return;",
+          "  pm.collectionVariables.set(key, String(value));",
+          "}",
+          "",
+          "function getId(value) {",
+          "  if (!value) return null;",
+          "  if (typeof value === \"string\") return value;",
+          "  return value._id || value.id || value.decorPlanId || value.productId || null;",
+          "}",
+          "",
+          "const json = readJson();",
+          "if (!json) return;",
+          "",
+          "const first = Array.isArray(json) ? json[0] : json;",
+          "const requestName = pm.info.requestName.toLowerCase();",
+          "",
+          "setVar(\"accessToken\", json.accessToken);",
+          "setVar(\"refreshToken\", json.refreshToken);",
+          "",
+          "if (json.user) {",
+          "  setVar(\"userId\", getId(json.user));",
+          "}",
+          "",
+          "if (requestName.includes(\"room\")) {",
+          "  setVar(\"roomId\", getId(first));",
+          "}",
+          "",
+          "if (requestName.includes(\"product\")) {",
+          "  setVar(\"productId\", getId(first));",
+          "}",
+          "",
+          "if (requestName.includes(\"decor plan\")) {",
+          "  setVar(\"decorPlanId\", json.decorPlanId || getId(first));",
+          "  if (Array.isArray(json.recommendedProducts) && json.recommendedProducts[0]) {",
+          "    setVar(\"productId\", getId(json.recommendedProducts[0]));",
+          "  }",
+          "}",
+          "",
+          "if (requestName.includes(\"favorite\")) {",
+          "  setVar(\"favoriteId\", getId(first));",
+          "  if (first && first.decorPlanId) {",
+          "    setVar(\"decorPlanId\", getId(first.decorPlanId));",
+          "  }",
+          "}"
         ]
       }
     }
@@ -43,7 +91,7 @@
     },
     {
       "key": "email",
-      "value": "maya@example.com",
+      "value": "decoho.user@example.com",
       "type": "string"
     },
     {
@@ -78,22 +126,22 @@
     },
     {
       "key": "roomId",
-      "value": "666f8b1c8a7f5e0012a22201",
+      "value": "",
       "type": "string"
     },
     {
       "key": "productId",
-      "value": "666f8b1c8a7f5e0012a55501",
+      "value": "",
       "type": "string"
     },
     {
       "key": "decorPlanId",
-      "value": "666f8b1c8a7f5e0012a44401",
+      "value": "",
       "type": "string"
     },
     {
       "key": "favoriteId",
-      "value": "666f8b1c8a7f5e0012a66601",
+      "value": "",
       "type": "string"
     },
     {
@@ -109,7 +157,7 @@
   ],
   "item": [
     {
-      "name": "Auth",
+      "name": "01 Auth - Tokens",
       "item": [
         {
           "name": "Register",
@@ -143,9 +191,19 @@
                 "register"
               ]
             },
-            "description": "Register a new user and store access/refresh tokens from the response."
+            "description": "Registers a new user. A unique email is generated before each send, then tokens are saved automatically."
           },
           "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const email = `decoho_${Date.now()}@example.com`;",
+                  "pm.collectionVariables.set(\"email\", email);"
+                ]
+              }
+            },
             {
               "listen": "test",
               "script": {
@@ -195,7 +253,7 @@
                 "login"
               ]
             },
-            "description": "Login user and store JWT access/refresh tokens."
+            "description": "Logs in with the latest collection email/password and saves tokens automatically."
           },
           "event": [
             {
@@ -361,10 +419,11 @@
             "description": "Revoke the current stored refresh token."
           }
         }
-      ]
+      ],
+      "description": "Run Register or Login first. The collection stores accessToken, refreshToken, and userId automatically."
     },
     {
-      "name": "Users",
+      "name": "02 Users - Profile",
       "item": [
         {
           "name": "Get Profile",
@@ -460,10 +519,11 @@
             }
           }
         }
-      ]
+      ],
+      "description": "Uses accessToken from Auth to get, update, upload avatar, or delete the current user profile."
     },
     {
-      "name": "Rooms",
+      "name": "03 Rooms - Data",
       "item": [
         {
           "name": "Upload Room",
@@ -536,7 +596,8 @@
               "path": [
                 "rooms"
               ]
-            }
+            },
+            "description": "Returns rooms for the current user. If at least one room exists, roomId is saved automatically."
           }
         },
         {
@@ -573,10 +634,11 @@
             }
           }
         }
-      ]
+      ],
+      "description": "Upload or get rooms. The collection stores roomId automatically from upload/list/detail responses."
     },
     {
-      "name": "AI",
+      "name": "04 AI - Analysis",
       "item": [
         {
           "name": "Analyze Room",
@@ -654,10 +716,11 @@
             }
           }
         }
-      ]
+      ],
+      "description": "Uses roomId to analyze uploaded room data."
     },
     {
-      "name": "Products",
+      "name": "05 Products - Data",
       "item": [
         {
           "name": "Create Product - ADMIN",
@@ -721,7 +784,8 @@
               "path": [
                 "products"
               ]
-            }
+            },
+            "description": "Returns products. If at least one product exists, productId is saved automatically."
           }
         },
         {
@@ -786,10 +850,11 @@
             }
           }
         }
-      ]
+      ],
+      "description": "Get products or create products as ADMIN. The collection stores productId automatically."
     },
     {
-      "name": "Decor Plans",
+      "name": "06 Decor Plans - Data",
       "item": [
         {
           "name": "Generate Decor Plan",
@@ -820,7 +885,7 @@
                 "generate"
               ]
             },
-            "description": "Generate a decor plan from an uploaded room. If the backend response includes _id, id, or decorPlanId, this request stores it into the decorPlanId variable for Favorites."
+            "description": "Generates and saves a decor plan. decorPlanId is saved automatically from the response."
           },
           "event": [
             {
@@ -839,10 +904,11 @@
             }
           ]
         }
-      ]
+      ],
+      "description": "Generate a decor plan from roomId, budget, and style. The collection stores decorPlanId automatically."
     },
     {
-      "name": "Favorites",
+      "name": "07 Favorites - Data",
       "item": [
         {
           "name": "Save Decor Plan",
@@ -903,7 +969,8 @@
               "path": [
                 "favorites"
               ]
-            }
+            },
+            "description": "Returns favorites for the current user. favoriteId and decorPlanId are saved automatically when data exists."
           },
           "event": [
             {
@@ -937,10 +1004,11 @@
             }
           }
         }
-      ]
+      ],
+      "description": "Save and list decor plan favorites. The collection stores favoriteId automatically."
     },
     {
-      "name": "Admin",
+      "name": "08 Admin - Dashboard",
       "item": [
         {
           "name": "Dashboard",
@@ -960,7 +1028,8 @@
             "description": "Requires ADMIN access token."
           }
         }
-      ]
+      ],
+      "description": "Requires an ADMIN access token from Admin Login."
     }
   ]
 }

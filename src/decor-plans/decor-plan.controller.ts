@@ -56,6 +56,7 @@ export class DecorPlanController {
     description: 'Decor plan generated',
     schema: {
       example: {
+        decorPlanId: '666f8b1c8a7f5e0012a44401',
         estimatedCost: 4500000,
         designSuggestion:
           'Use a calm Minimalist layout with neutral colors and compact storage pieces.',
