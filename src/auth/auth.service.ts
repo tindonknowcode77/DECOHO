@@ -1,10 +1,13 @@
 import {
+  BadRequestException,
   Injectable,
   InternalServerErrorException,
+  NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService, JwtSignOptions } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
+import { MailService } from '../mail/mail.service';
 import { CreateUserDto } from '../users/dto/create-user.dto';
 import { User } from '../users/user.schema';
 import { UsersService } from '../users/users.service';
@@ -12,6 +15,7 @@ import { UsersService } from '../users/users.service';
 type UserWithPrivateFields = User & {
   id?: string;
   _id?: { toString(): string };
+  passwordHash?: string;
   refreshTokenHash?: string;
   toObject?: () => Record<string, unknown>;
 };
@@ -20,6 +24,12 @@ type TokenPayload = {
   sub: string;
   email: string;
   role: string;
+};
+
+type EmailVerificationPayload = {
+  sub: string;
+  email: string;
+  type: 'email_verification';
 };
 
 type TokenPair = {
@@ -34,11 +44,43 @@ type AuthUserResponse = {
   avatar?: unknown;
   role: string;
   status: string;
+  isEmailVerified: boolean;
   preferences?: unknown;
   lastLoginAt?: Date;
+  emailVerifiedAt?: Date;
 };
 
 type AuthResponse = TokenPair & {
+  user: AuthUserResponse;
+};
+
+type EmailVerificationResponse = {
+  message: string;
+  emailSent: boolean;
+  verificationLink: string;
+  expiresIn: string;
+  verificationToken?: string;
+};
+
+type RegisterResponse = {
+  message: string;
+  user: AuthUserResponse;
+  emailVerification: EmailVerificationResponse;
+};
+
+type ResendVerificationResponse = {
+  message: string;
+  emailVerification: EmailVerificationResponse;
+};
+
+type VerifyAccessTokenResponse = {
+  valid: true;
+  user: AuthUserResponse;
+};
+
+type VerifyEmailTokenResponse = {
+  valid: true;
+  message: string;
   user: AuthUserResponse;
 };
 
@@ -51,19 +93,21 @@ export class AuthService {
   constructor(
     private readonly usersService: UsersService,
     private readonly jwtService: JwtService,
+    private readonly mailService: MailService,
   ) {}
 
-  async register(createUserDto: CreateUserDto): Promise<AuthResponse> {
+  async register(createUserDto: CreateUserDto): Promise<RegisterResponse> {
     const user = (await this.usersService.create(
       createUserDto,
     )) as UserWithPrivateFields;
 
-    const tokens = await this.generateTokens(user);
-    await this.storeRefreshToken(user, tokens.refreshToken);
+    const emailVerification =
+      await this.createAndSendEmailVerificationLink(user);
 
     return {
-      ...tokens,
+      message: 'Registration successful. Please verify your email before login.',
       user: this.toAuthUserResponse(user),
+      emailVerification,
     };
   }
 
@@ -72,13 +116,17 @@ export class AuthService {
       email,
     )) as UserWithPrivateFields | null;
 
-    if (!user) {
+    if (!user?.passwordHash) {
       throw new UnauthorizedException('Invalid email or password');
     }
 
     const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
     if (!isPasswordValid) {
       throw new UnauthorizedException('Invalid email or password');
+    }
+
+    if (!user.isEmailVerified) {
+      throw new UnauthorizedException('Please verify your email before login');
     }
 
     const tokens = await this.generateTokens(user);
@@ -108,6 +156,10 @@ export class AuthService {
       throw new UnauthorizedException('Invalid refresh token');
     }
 
+    if (!user.isEmailVerified) {
+      throw new UnauthorizedException('Please verify your email before login');
+    }
+
     const tokens = await this.generateTokens(user);
     await this.storeRefreshToken(user, tokens.refreshToken);
 
@@ -121,12 +173,129 @@ export class AuthService {
     await this.usersService.clearRefreshTokenHash(userId);
   }
 
+  async verifyAccessToken(userId: string): Promise<VerifyAccessTokenResponse> {
+    const user = (await this.usersService.getProfile(
+      userId,
+    )) as UserWithPrivateFields;
+
+    return {
+      valid: true,
+      user: this.toAuthUserResponse(user),
+    };
+  }
+
+  async resendVerificationToken(
+    email: string,
+  ): Promise<ResendVerificationResponse> {
+    const user = (await this.usersService.findByEmail(
+      email,
+    )) as UserWithPrivateFields | null;
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    if (user.isEmailVerified) {
+      throw new BadRequestException('Email is already verified');
+    }
+
+    const emailVerification =
+      await this.createAndSendEmailVerificationLink(user);
+
+    return {
+      message: 'Verification email resent',
+      emailVerification,
+    };
+  }
+
+  async verifyEmailToken(token: string): Promise<VerifyEmailTokenResponse> {
+    const payload = await this.verifyEmailVerificationToken(token);
+    const user = (await this.usersService.markEmailAsVerified(
+      payload.sub,
+    )) as UserWithPrivateFields;
+
+    return {
+      valid: true,
+      message: 'Email verified successfully',
+      user: this.toAuthUserResponse(user),
+    };
+  }
+
   async getProfile(userId: string): Promise<AuthUserResponse> {
     const user = (await this.usersService.getProfile(
       userId,
     )) as UserWithPrivateFields;
 
     return this.toAuthUserResponse(user);
+  }
+
+  private async createAndSendEmailVerificationLink(
+    user: UserWithPrivateFields,
+  ): Promise<EmailVerificationResponse> {
+    const expiresIn = this.getEmailVerificationExpiresIn();
+    const verificationToken = await this.generateEmailVerificationToken(
+      user,
+      expiresIn,
+    );
+    const verificationLink =
+      this.buildEmailVerificationLink(verificationToken);
+    const emailSent = await this.mailService.sendVerificationLinkEmail({
+      to: user.email,
+      fullName: user.fullName,
+      verificationLink,
+      expiresIn: String(expiresIn),
+    });
+
+    return {
+      message: emailSent
+        ? 'Verification email sent'
+        : 'Verification link generated. Configure Gmail SMTP to send email',
+      emailSent,
+      verificationLink,
+      expiresIn: String(expiresIn),
+      ...(this.shouldExposeVerificationTokenInResponse()
+        ? { verificationToken }
+        : {}),
+    };
+  }
+
+  private async generateEmailVerificationToken(
+    user: UserWithPrivateFields,
+    expiresIn: NonNullable<JwtSignOptions['expiresIn']>,
+  ): Promise<string> {
+    const payload: EmailVerificationPayload = {
+      sub: this.getUserId(user),
+      email: user.email,
+      type: 'email_verification',
+    };
+
+    return this.jwtService.signAsync(payload, {
+      secret: this.getEmailVerificationSecret(),
+      expiresIn,
+    });
+  }
+
+  private async verifyEmailVerificationToken(
+    token: string,
+  ): Promise<EmailVerificationPayload> {
+    try {
+      const payload =
+        await this.jwtService.verifyAsync<EmailVerificationPayload>(token, {
+          secret: this.getEmailVerificationSecret(),
+        });
+
+      if (payload.type !== 'email_verification' || !payload.sub) {
+        throw new UnauthorizedException('Invalid verification token');
+      }
+
+      return payload;
+    } catch (error) {
+      if (error instanceof UnauthorizedException) {
+        throw error;
+      }
+
+      throw new UnauthorizedException('Invalid or expired verification token');
+    }
   }
 
   private async generateTokens(user: UserWithPrivateFields): Promise<TokenPair> {
@@ -178,8 +347,10 @@ export class AuthService {
       avatar: data.avatar,
       role: data.role as string,
       status: data.status as string,
+      isEmailVerified: Boolean(data.isEmailVerified),
       preferences: data.preferences,
       lastLoginAt: data.lastLoginAt as Date | undefined,
+      emailVerifiedAt: data.emailVerifiedAt as Date | undefined,
     };
   }
 
@@ -201,6 +372,40 @@ export class AuthService {
     }
 
     return value;
+  }
+
+  private getEmailVerificationSecret(): string {
+    return (
+      process.env.JWT_EMAIL_VERIFICATION_SECRET ??
+      this.getRequiredEnv('JWT_ACCESS_SECRET')
+    );
+  }
+
+  private getEmailVerificationExpiresIn(): NonNullable<
+    JwtSignOptions['expiresIn']
+  > {
+    return (process.env.JWT_EMAIL_VERIFICATION_EXPIRES_IN ??
+      '1d') as NonNullable<JwtSignOptions['expiresIn']>;
+  }
+
+  private buildEmailVerificationLink(token: string): string {
+    const verificationUrl =
+      process.env.EMAIL_VERIFICATION_URL ??
+      'http://localhost:3000/api/verify-email';
+    const url = new URL(verificationUrl);
+
+    url.searchParams.set('token', token);
+
+    return url.toString();
+  }
+
+  private shouldExposeVerificationTokenInResponse(): boolean {
+    const explicitValue = process.env.EMAIL_VERIFICATION_EXPOSE_TOKEN;
+    if (explicitValue !== undefined) {
+      return explicitValue === 'true';
+    }
+
+    return true;
   }
 
   private getJwtExpiresIn(

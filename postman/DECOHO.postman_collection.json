@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "cc2f7201-3b24-4a78-a30d-decoho000001",
     "name": "DECOHO Backend API",
-    "description": "Single-file Postman collection for DECOHO Backend. Run folders from top to bottom. Collection scripts automatically store accessToken, refreshToken, userId, roomId, productId, decorPlanId, and favoriteId from real API responses. No saved response examples are included, so the sidebar only shows folders and requests.",
+    "description": "Single-file Postman collection for DECOHO Backend. Auth flow: Register -> GET /api/verify-email?token=... -> Login. Register and Resend Token store verificationToken and verificationLink automatically.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -53,6 +53,10 @@
           "",
           "setVar(\"accessToken\", json.accessToken);",
           "setVar(\"refreshToken\", json.refreshToken);",
+          "if (json.emailVerification) {",
+          "  setVar(\"verificationToken\", json.emailVerification.verificationToken);",
+          "  setVar(\"verificationLink\", json.emailVerification.verificationLink);",
+          "}",
           "",
           "if (json.user) {",
           "  setVar(\"userId\", getId(json.user));",
@@ -85,13 +89,23 @@
   ],
   "variable": [
     {
+      "key": "host_main",
+      "value": "http://localhost:3000/api",
+      "type": "string"
+    },
+    {
       "key": "baseUrl",
       "value": "http://localhost:3000/api",
       "type": "string"
     },
     {
+      "key": "baseurl",
+      "value": "http://localhost:3000/api",
+      "type": "string"
+    },
+    {
       "key": "email",
-      "value": "decoho.user@example.com",
+      "value": "ngoctin22102003@gmail.com",
       "type": "string"
     },
     {
@@ -116,6 +130,16 @@
     },
     {
       "key": "refreshToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "verificationToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "verificationLink",
       "value": "",
       "type": "string"
     },
@@ -182,28 +206,21 @@
               }
             },
             "url": {
-              "raw": "{{baseUrl}}/auth/register",
+              "raw": "http://localhost:3000/api/auth/register",
               "host": [
-                "{{baseUrl}}"
+                "localhost"
               ],
               "path": [
+                "api",
                 "auth",
                 "register"
-              ]
+              ],
+              "protocol": "http",
+              "port": "3000"
             },
-            "description": "Registers a new user. A unique email is generated before each send, then tokens are saved automatically."
+            "description": "Registers the email in the collection variable, sends/generates verification email link, and stores verificationToken/userId automatically. Login is allowed only after Verify Token or clicking the email link."
           },
           "event": [
-            {
-              "listen": "prerequest",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "const email = `decoho_${Date.now()}@example.com`;",
-                  "pm.collectionVariables.set(\"email\", email);"
-                ]
-              }
-            },
             {
               "listen": "test",
               "script": {
@@ -213,13 +230,134 @@
                   "  pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
                   "});",
                   "const json = pm.response.json();",
-                  "if (json.accessToken) pm.collectionVariables.set('accessToken', json.accessToken);",
-                  "if (json.refreshToken) pm.collectionVariables.set('refreshToken', json.refreshToken);",
-                  "if (json.user && json.user.id) pm.collectionVariables.set('userId', json.user.id);"
+                  "if (json.user && json.user.id) pm.collectionVariables.set('userId', json.user.id);",
+                  "if (json.emailVerification && json.emailVerification.verificationToken) pm.collectionVariables.set('verificationToken', json.emailVerification.verificationToken);",
+                  "if (json.emailVerification && json.emailVerification.verificationLink) pm.collectionVariables.set('verificationLink', json.emailVerification.verificationLink);"
                 ]
               }
             }
           ]
+        },
+        {
+          "name": "Resend Token",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:3000/api/auth/resend-token",
+              "host": [
+                "localhost"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "resend-token"
+              ],
+              "protocol": "http",
+              "port": "3000"
+            },
+            "description": "Generate and send a new verification email link. Use the returned verificationToken in Verify Token, or open verificationLink in a browser."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Resend token success', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "if (json.emailVerification && json.emailVerification.verificationToken) pm.collectionVariables.set('verificationToken', json.emailVerification.verificationToken);",
+                  "if (json.emailVerification && json.emailVerification.verificationLink) pm.collectionVariables.set('verificationLink', json.emailVerification.verificationLink);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Verify Token",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"{{verificationToken}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:3000/api/auth/verify-token",
+              "host": [
+                "localhost"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "verify-token"
+              ],
+              "protocol": "http",
+              "port": "3000"
+            },
+            "description": "Verify user email using verificationToken from Register or Resend Token. You can also open verificationLink directly in the browser."
+          }
+        },
+        {
+          "name": "Verify Email Link",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3000/api/verify-email?token={{verificationToken}}",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "api",
+                "verify-email"
+              ],
+              "query": [
+                {
+                  "key": "token",
+                  "value": "{{verificationToken}}"
+                }
+              ]
+            },
+            "description": "Mirrors the Gmail click flow: GET /api/verify-email?token=... using verificationToken from Register or Resend Token."
+          }
         },
         {
           "name": "Login",
@@ -244,16 +382,19 @@
               }
             },
             "url": {
-              "raw": "{{baseUrl}}/auth/login",
+              "raw": "http://localhost:3000/api/auth/login",
               "host": [
-                "{{baseUrl}}"
+                "localhost"
               ],
               "path": [
+                "api",
                 "auth",
                 "login"
-              ]
+              ],
+              "protocol": "http",
+              "port": "3000"
             },
-            "description": "Logs in with the latest collection email/password and saves tokens automatically."
+            "description": "Login after email verification succeeds. This request stores accessToken, refreshToken, and userId automatically."
           },
           "event": [
             {
@@ -296,14 +437,17 @@
               }
             },
             "url": {
-              "raw": "{{baseUrl}}/auth/login",
+              "raw": "http://localhost:3000/api/auth/login",
               "host": [
-                "{{baseUrl}}"
+                "localhost"
               ],
               "path": [
+                "api",
                 "auth",
                 "login"
-              ]
+              ],
+              "protocol": "http",
+              "port": "3000"
             },
             "description": "Login with an ADMIN account before calling POST /products or GET /admin/dashboard."
           },
@@ -355,14 +499,17 @@
               }
             },
             "url": {
-              "raw": "{{baseUrl}}/auth/refresh",
+              "raw": "http://localhost:3000/api/auth/refresh",
               "host": [
-                "{{baseUrl}}"
+                "localhost"
               ],
               "path": [
+                "api",
                 "auth",
                 "refresh"
-              ]
+              ],
+              "protocol": "http",
+              "port": "3000"
             },
             "description": "Rotate refresh token and receive a new access token. Sends refresh token as Bearer token and body for compatibility."
           },
@@ -384,19 +531,43 @@
           ]
         },
         {
+          "name": "Verify Access Token",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3000/api/auth/verify-token",
+              "host": [
+                "localhost"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "verify-token"
+              ],
+              "protocol": "http",
+              "port": "3000"
+            },
+            "description": "Verify the current Bearer accessToken and return the authenticated user."
+          }
+        },
+        {
           "name": "Get Auth Profile",
           "request": {
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/auth/profile",
+              "raw": "http://localhost:3000/api/auth/profile",
               "host": [
-                "{{baseUrl}}"
+                "localhost"
               ],
               "path": [
+                "api",
                 "auth",
                 "profile"
-              ]
+              ],
+              "protocol": "http",
+              "port": "3000"
             },
             "description": "Get authenticated user profile using JWT access token."
           }
@@ -407,20 +578,23 @@
             "method": "POST",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/auth/logout",
+              "raw": "http://localhost:3000/api/auth/logout",
               "host": [
-                "{{baseUrl}}"
+                "localhost"
               ],
               "path": [
+                "api",
                 "auth",
                 "logout"
-              ]
+              ],
+              "protocol": "http",
+              "port": "3000"
             },
             "description": "Revoke the current stored refresh token."
           }
         }
       ],
-      "description": "Run Register or Login first. The collection stores accessToken, refreshToken, and userId automatically."
+      "description": "Email link flow: Register -> Verify Email Link or Verify Token -> Login. Register/Resend stores verificationToken and verificationLink."
     },
     {
       "name": "02 Users - Profile",
@@ -431,14 +605,17 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/users/me",
+              "raw": "http://localhost:3000/api/users/me",
               "host": [
-                "{{baseUrl}}"
+                "localhost"
               ],
               "path": [
+                "api",
                 "users",
                 "me"
-              ]
+              ],
+              "protocol": "http",
+              "port": "3000"
             }
           }
         },
@@ -462,14 +639,17 @@
               }
             },
             "url": {
-              "raw": "{{baseUrl}}/users/me",
+              "raw": "http://localhost:3000/api/users/me",
               "host": [
-                "{{baseUrl}}"
+                "localhost"
               ],
               "path": [
+                "api",
                 "users",
                 "me"
-              ]
+              ],
+              "protocol": "http",
+              "port": "3000"
             }
           }
         },
@@ -489,15 +669,18 @@
               ]
             },
             "url": {
-              "raw": "{{baseUrl}}/users/me/avatar",
+              "raw": "http://localhost:3000/api/users/me/avatar",
               "host": [
-                "{{baseUrl}}"
+                "localhost"
               ],
               "path": [
+                "api",
                 "users",
                 "me",
                 "avatar"
-              ]
+              ],
+              "protocol": "http",
+              "port": "3000"
             },
             "description": "Select an image file in the avatar field before sending."
           }
@@ -508,14 +691,17 @@
             "method": "DELETE",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/users/me",
+              "raw": "http://localhost:3000/api/users/me",
               "host": [
-                "{{baseUrl}}"
+                "localhost"
               ],
               "path": [
+                "api",
                 "users",
                 "me"
-              ]
+              ],
+              "protocol": "http",
+              "port": "3000"
             }
           }
         }
@@ -556,14 +742,17 @@
               ]
             },
             "url": {
-              "raw": "{{baseUrl}}/rooms/upload",
+              "raw": "http://localhost:3000/api/rooms/upload",
               "host": [
-                "{{baseUrl}}"
+                "localhost"
               ],
               "path": [
+                "api",
                 "rooms",
                 "upload"
-              ]
+              ],
+              "protocol": "http",
+              "port": "3000"
             },
             "description": "Upload a room image to Cloudinary and create a room document."
           },
@@ -589,13 +778,16 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/rooms",
+              "raw": "http://localhost:3000/api/rooms",
               "host": [
-                "{{baseUrl}}"
+                "localhost"
               ],
               "path": [
+                "api",
                 "rooms"
-              ]
+              ],
+              "protocol": "http",
+              "port": "3000"
             },
             "description": "Returns rooms for the current user. If at least one room exists, roomId is saved automatically."
           }
@@ -606,14 +798,17 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/rooms/{{roomId}}",
+              "raw": "http://localhost:3000/api/rooms/{{roomId}}",
               "host": [
-                "{{baseUrl}}"
+                "localhost"
               ],
               "path": [
+                "api",
                 "rooms",
                 "{{roomId}}"
-              ]
+              ],
+              "protocol": "http",
+              "port": "3000"
             }
           }
         },
@@ -623,14 +818,17 @@
             "method": "DELETE",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/rooms/{{roomId}}",
+              "raw": "http://localhost:3000/api/rooms/{{roomId}}",
               "host": [
-                "{{baseUrl}}"
+                "localhost"
               ],
               "path": [
+                "api",
                 "rooms",
                 "{{roomId}}"
-              ]
+              ],
+              "protocol": "http",
+              "port": "3000"
             }
           }
         }
@@ -646,16 +844,19 @@
             "method": "POST",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/ai/rooms/{{roomId}}/analyze",
+              "raw": "http://localhost:3000/api/ai/rooms/{{roomId}}/analyze",
               "host": [
-                "{{baseUrl}}"
+                "localhost"
               ],
               "path": [
+                "api",
                 "ai",
                 "rooms",
                 "{{roomId}}",
                 "analyze"
-              ]
+              ],
+              "protocol": "http",
+              "port": "3000"
             }
           }
         },
@@ -665,16 +866,19 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/ai/rooms/{{roomId}}/objects",
+              "raw": "http://localhost:3000/api/ai/rooms/{{roomId}}/objects",
               "host": [
-                "{{baseUrl}}"
+                "localhost"
               ],
               "path": [
+                "api",
                 "ai",
                 "rooms",
                 "{{roomId}}",
                 "objects"
-              ]
+              ],
+              "protocol": "http",
+              "port": "3000"
             }
           }
         },
@@ -684,16 +888,19 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/ai/rooms/{{roomId}}/colors",
+              "raw": "http://localhost:3000/api/ai/rooms/{{roomId}}/colors",
               "host": [
-                "{{baseUrl}}"
+                "localhost"
               ],
               "path": [
+                "api",
                 "ai",
                 "rooms",
                 "{{roomId}}",
                 "colors"
-              ]
+              ],
+              "protocol": "http",
+              "port": "3000"
             }
           }
         },
@@ -703,16 +910,19 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/ai/rooms/{{roomId}}/type",
+              "raw": "http://localhost:3000/api/ai/rooms/{{roomId}}/type",
               "host": [
-                "{{baseUrl}}"
+                "localhost"
               ],
               "path": [
+                "api",
                 "ai",
                 "rooms",
                 "{{roomId}}",
                 "type"
-              ]
+              ],
+              "protocol": "http",
+              "port": "3000"
             }
           }
         }
@@ -742,13 +952,16 @@
               }
             },
             "url": {
-              "raw": "{{baseUrl}}/products",
+              "raw": "http://localhost:3000/api/products",
               "host": [
-                "{{baseUrl}}"
+                "localhost"
               ],
               "path": [
+                "api",
                 "products"
-              ]
+              ],
+              "protocol": "http",
+              "port": "3000"
             },
             "description": "Requires ADMIN access token."
           },
@@ -777,13 +990,16 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/products",
+              "raw": "http://localhost:3000/api/products",
               "host": [
-                "{{baseUrl}}"
+                "localhost"
               ],
               "path": [
+                "api",
                 "products"
-              ]
+              ],
+              "protocol": "http",
+              "port": "3000"
             },
             "description": "Returns products. If at least one product exists, productId is saved automatically."
           }
@@ -797,14 +1013,17 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/products/{{productId}}",
+              "raw": "http://localhost:3000/api/products/{{productId}}",
               "host": [
-                "{{baseUrl}}"
+                "localhost"
               ],
               "path": [
+                "api",
                 "products",
                 "{{productId}}"
-              ]
+              ],
+              "protocol": "http",
+              "port": "3000"
             }
           }
         },
@@ -817,15 +1036,18 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/products/style/{{style}}",
+              "raw": "http://localhost:3000/api/products/style/{{style}}",
               "host": [
-                "{{baseUrl}}"
+                "localhost"
               ],
               "path": [
+                "api",
                 "products",
                 "style",
                 "{{style}}"
-              ]
+              ],
+              "protocol": "http",
+              "port": "3000"
             }
           }
         },
@@ -838,15 +1060,18 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/products/budget/{{budget}}",
+              "raw": "http://localhost:3000/api/products/budget/{{budget}}",
               "host": [
-                "{{baseUrl}}"
+                "localhost"
               ],
               "path": [
+                "api",
                 "products",
                 "budget",
                 "{{budget}}"
-              ]
+              ],
+              "protocol": "http",
+              "port": "3000"
             }
           }
         }
@@ -876,14 +1101,17 @@
               }
             },
             "url": {
-              "raw": "{{baseUrl}}/decor-plans/generate",
+              "raw": "http://localhost:3000/api/decor-plans/generate",
               "host": [
-                "{{baseUrl}}"
+                "localhost"
               ],
               "path": [
+                "api",
                 "decor-plans",
                 "generate"
-              ]
+              ],
+              "protocol": "http",
+              "port": "3000"
             },
             "description": "Generates and saves a decor plan. decorPlanId is saved automatically from the response."
           },
@@ -930,13 +1158,16 @@
               }
             },
             "url": {
-              "raw": "{{baseUrl}}/favorites",
+              "raw": "http://localhost:3000/api/favorites",
               "host": [
-                "{{baseUrl}}"
+                "localhost"
               ],
               "path": [
+                "api",
                 "favorites"
-              ]
+              ],
+              "protocol": "http",
+              "port": "3000"
             },
             "description": "decorPlanId must belong to the current authenticated user. Use a saved decor plan id from MongoDB or let Generate Decor Plan set decorPlanId if your backend returns the created plan id."
           },
@@ -962,13 +1193,16 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/favorites",
+              "raw": "http://localhost:3000/api/favorites",
               "host": [
-                "{{baseUrl}}"
+                "localhost"
               ],
               "path": [
+                "api",
                 "favorites"
-              ]
+              ],
+              "protocol": "http",
+              "port": "3000"
             },
             "description": "Returns favorites for the current user. favoriteId and decorPlanId are saved automatically when data exists."
           },
@@ -993,14 +1227,17 @@
             "method": "DELETE",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/favorites/{{favoriteId}}",
+              "raw": "http://localhost:3000/api/favorites/{{favoriteId}}",
               "host": [
-                "{{baseUrl}}"
+                "localhost"
               ],
               "path": [
+                "api",
                 "favorites",
                 "{{favoriteId}}"
-              ]
+              ],
+              "protocol": "http",
+              "port": "3000"
             }
           }
         }
@@ -1016,14 +1253,17 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/admin/dashboard",
+              "raw": "http://localhost:3000/api/admin/dashboard",
               "host": [
-                "{{baseUrl}}"
+                "localhost"
               ],
               "path": [
+                "api",
                 "admin",
                 "dashboard"
-              ]
+              ],
+              "protocol": "http",
+              "port": "3000"
             },
             "description": "Requires ADMIN access token."
           }
