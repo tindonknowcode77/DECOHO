@@ -4,8 +4,8 @@ import { HydratedDocument } from 'mongoose';
 export type UserDocument = HydratedDocument<User>;
 
 export enum UserRole {
-  User = 'user',
-  Admin = 'admin',
+  User = 'USER',
+  Admin = 'ADMIN',
 }
 
 export enum UserStatus {
@@ -97,7 +97,7 @@ export class User {
   status: UserStatus;
 
   @Prop({ default: false, index: true })
-  isEmailVerified: boolean;
+  isVerified: boolean;
 
   @Prop()
   emailVerifiedAt?: Date;
@@ -117,7 +117,7 @@ export const UserSchema = SchemaFactory.createForClass(User);
 UserSchema.index({ email: 1 }, { unique: true });
 UserSchema.index({ role: 1, status: 1 });
 UserSchema.index({ status: 1, createdAt: -1 });
-UserSchema.index({ isEmailVerified: 1, createdAt: -1 });
+UserSchema.index({ isVerified: 1, createdAt: -1 });
 UserSchema.index(
   { deletedAt: 1 },
   { partialFilterExpression: { deletedAt: { $exists: true } } },

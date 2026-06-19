@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "cc2f7201-3b24-4a78-a30d-decoho000001",
     "name": "DECOHO Backend API",
-    "description": "Single-file Postman collection for DECOHO Backend. Auth flow: Register -> GET /api/verify-email?token=... -> Login. Register and Resend Token store verificationToken and verificationLink automatically.",
+    "description": "Single-file Postman collection for DECOHO Backend. Auth flow: Register -> GET /api/verify-email?token=... -> Login. Register and Resend Token store verifyToken and verifyLink automatically.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -53,10 +53,8 @@
           "",
           "setVar(\"accessToken\", json.accessToken);",
           "setVar(\"refreshToken\", json.refreshToken);",
-          "if (json.emailVerification) {",
-          "  setVar(\"verificationToken\", json.emailVerification.verificationToken);",
-          "  setVar(\"verificationLink\", json.emailVerification.verificationLink);",
-          "}",
+          "setVar(\"verificationToken\", json.verifyToken);",
+          "setVar(\"verificationLink\", json.verifyLink);",
           "",
           "if (json.user) {",
           "  setVar(\"userId\", getId(json.user));",
@@ -105,12 +103,12 @@
     },
     {
       "key": "email",
-      "value": "ngoctin22102003@gmail.com",
+      "value": "vana@gmail.com",
       "type": "string"
     },
     {
       "key": "password",
-      "value": "Str0ngP@ssword!",
+      "value": "123456",
       "type": "string"
     },
     {
@@ -198,7 +196,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"email\": \"{{email}}\",\n  \"fullName\": \"Maya Chen\",\n  \"password\": \"{{password}}\",\n  \"preferences\": {\n    \"styles\": [\"minimalist\", \"japandi\"],\n    \"budgetMin\": 500,\n    \"budgetMax\": 2500,\n    \"currency\": \"USD\"\n  }\n}",
+              "raw": "{\n  \"fullName\": \"Nguyen Van A\",\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -230,9 +228,9 @@
                   "  pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
                   "});",
                   "const json = pm.response.json();",
-                  "if (json.user && json.user.id) pm.collectionVariables.set('userId', json.user.id);",
-                  "if (json.emailVerification && json.emailVerification.verificationToken) pm.collectionVariables.set('verificationToken', json.emailVerification.verificationToken);",
-                  "if (json.emailVerification && json.emailVerification.verificationLink) pm.collectionVariables.set('verificationLink', json.emailVerification.verificationLink);"
+                  "if (json.user && (json.user._id || json.user.id)) pm.collectionVariables.set('userId', json.user._id || json.user.id);",
+                  "if (json.verifyToken) pm.collectionVariables.set('verificationToken', json.verifyToken);",
+                  "if (json.verifyLink) pm.collectionVariables.set('verificationLink', json.verifyLink);"
                 ]
               }
             }
@@ -285,8 +283,8 @@
                   "  pm.response.to.have.status(200);",
                   "});",
                   "const json = pm.response.json();",
-                  "if (json.emailVerification && json.emailVerification.verificationToken) pm.collectionVariables.set('verificationToken', json.emailVerification.verificationToken);",
-                  "if (json.emailVerification && json.emailVerification.verificationLink) pm.collectionVariables.set('verificationLink', json.emailVerification.verificationLink);"
+                  "if (json.verifyToken) pm.collectionVariables.set('verificationToken', json.verifyToken);",
+                  "if (json.verifyLink) pm.collectionVariables.set('verificationLink', json.verifyLink);"
                 ]
               }
             }
@@ -408,7 +406,7 @@
                   "const json = pm.response.json();",
                   "if (json.accessToken) pm.collectionVariables.set('accessToken', json.accessToken);",
                   "if (json.refreshToken) pm.collectionVariables.set('refreshToken', json.refreshToken);",
-                  "if (json.user && json.user.id) pm.collectionVariables.set('userId', json.user.id);"
+                  "if (json.user && (json.user._id || json.user.id)) pm.collectionVariables.set('userId', json.user._id || json.user.id);"
                 ]
               }
             }
@@ -463,7 +461,7 @@
                   "const json = pm.response.json();",
                   "if (json.accessToken) pm.collectionVariables.set('accessToken', json.accessToken);",
                   "if (json.refreshToken) pm.collectionVariables.set('refreshToken', json.refreshToken);",
-                  "if (json.user && json.user.id) pm.collectionVariables.set('userId', json.user.id);"
+                  "if (json.user && (json.user._id || json.user.id)) pm.collectionVariables.set('userId', json.user._id || json.user.id);"
                 ]
               }
             }
@@ -594,7 +592,7 @@
           }
         }
       ],
-      "description": "Email link flow: Register -> Verify Email Link or Verify Token -> Login. Register/Resend stores verificationToken and verificationLink."
+      "description": "Email link flow: Register -> Verify Email Link or Verify Token -> Login. Register/Resend stores verifyToken as verificationToken and verifyLink as verificationLink."
     },
     {
       "name": "02 Users - Profile",

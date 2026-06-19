@@ -37,14 +37,14 @@ import { AuthService } from './auth.service';
 import { JwtAuthGuard } from './jwt-auth.guard';
 
 class LoginDto {
-  @ApiProperty({ example: 'maya@example.com' })
+  @ApiProperty({ example: 'vana@gmail.com' })
   @IsEmail()
   @MaxLength(254)
   email: string;
 
-  @ApiProperty({ example: 'Str0ngP@ssword!' })
+  @ApiProperty({ example: '123456' })
   @IsString()
-  @MinLength(8)
+  @MinLength(6)
   @MaxLength(72)
   password: string;
 }
@@ -70,7 +70,7 @@ class VerifyEmailTokenDto {
 }
 
 class ResendVerificationTokenDto {
-  @ApiProperty({ example: 'maya@example.com' })
+  @ApiProperty({ example: 'vana@gmail.com' })
   @IsEmail()
   @MaxLength(254)
   email: string;
@@ -102,20 +102,15 @@ export class AuthController {
       example: {
         message: 'Registration successful. Please verify your email before login.',
         user: {
-          id: '666f8b1c8a7f5e0012a11101',
-          email: 'maya@example.com',
-          fullName: 'Maya Chen',
-          role: 'user',
-          status: 'active',
-          isEmailVerified: false,
+          _id: '666f8b1c8a7f5e0012a11101',
+          fullName: 'Nguyen Van A',
+          email: 'vana@gmail.com',
+          role: 'USER',
+          isVerified: false,
         },
-        emailVerification: {
-          message: 'Verification email sent',
-          emailSent: true,
-          verificationLink:
-            'http://localhost:3000/api/verify-email?token=...',
-          expiresIn: '1d',
-        },
+        verifyToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+        verifyLink: 'http://localhost:3000/api/verify-email?token=...',
+        emailSent: true,
       },
     },
   })
@@ -166,12 +161,12 @@ export class AuthController {
       example: {
         valid: true,
         user: {
-          id: '666f8b1c8a7f5e0012a11101',
-          email: 'maya@example.com',
-          fullName: 'Maya Chen',
-          role: 'user',
+          _id: '666f8b1c8a7f5e0012a11101',
+          email: 'vana@gmail.com',
+          fullName: 'Nguyen Van A',
+          role: 'USER',
           status: 'active',
-          isEmailVerified: false,
+          isVerified: true,
         },
       },
     },
@@ -191,13 +186,9 @@ export class AuthController {
     schema: {
       example: {
         message: 'Verification email resent',
-        emailVerification: {
-          message: 'Verification email sent',
-          emailSent: true,
-          verificationLink:
-            'http://localhost:3000/api/verify-email?token=...',
-          expiresIn: '1d',
-        },
+        verifyToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+        verifyLink: 'http://localhost:3000/api/verify-email?token=...',
+        emailSent: true,
       },
     },
   })
@@ -217,13 +208,9 @@ export class AuthController {
     schema: {
       example: {
         message: 'Verification email resent',
-        emailVerification: {
-          message: 'Verification email sent',
-          emailSent: true,
-          verificationLink:
-            'http://localhost:3000/api/verify-email?token=...',
-          expiresIn: '1d',
-        },
+        verifyToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+        verifyLink: 'http://localhost:3000/api/verify-email?token=...',
+        emailSent: true,
       },
     },
   })
@@ -239,17 +226,7 @@ export class AuthController {
     description: 'Email verified',
     schema: {
       example: {
-        valid: true,
         message: 'Email verified successfully',
-        user: {
-          id: '666f8b1c8a7f5e0012a11101',
-          email: 'maya@example.com',
-          fullName: 'Maya Chen',
-          role: 'user',
-          status: 'active',
-          isEmailVerified: true,
-          emailVerifiedAt: '2026-06-17T10:00:00.000Z',
-        },
       },
     },
   })
@@ -268,17 +245,7 @@ export class AuthController {
     description: 'Email verified',
     schema: {
       example: {
-        valid: true,
         message: 'Email verified successfully',
-        user: {
-          id: '666f8b1c8a7f5e0012a11101',
-          email: 'maya@example.com',
-          fullName: 'Maya Chen',
-          role: 'user',
-          status: 'active',
-          isEmailVerified: true,
-          emailVerifiedAt: '2026-06-17T10:00:00.000Z',
-        },
       },
     },
   })
@@ -297,17 +264,7 @@ export class AuthController {
     description: 'Email verified',
     schema: {
       example: {
-        valid: true,
         message: 'Email verified successfully',
-        user: {
-          id: '666f8b1c8a7f5e0012a11101',
-          email: 'maya@example.com',
-          fullName: 'Maya Chen',
-          role: 'user',
-          status: 'active',
-          isEmailVerified: true,
-          emailVerifiedAt: '2026-06-17T10:00:00.000Z',
-        },
       },
     },
   })
