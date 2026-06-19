@@ -171,6 +171,8 @@ PORT hoặc 3000
 
 ## 6. Luồng Authentication
 
+> Cập nhật hiện tại: Auth dùng email verification link/token. Register tạo user với `isEmailVerified = false`, sinh verification token, gửi verification link qua Gmail SMTP nếu đã cấu hình, và không trả JWT ngay. User click link `GET /api/auth/verify-email?token=...` hoặc gọi `POST /api/auth/verify-token` với `{ token }`, sau đó mới login để nhận access token và refresh token.
+
 ### 6.1 Register
 
 Endpoint:

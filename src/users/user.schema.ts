@@ -96,6 +96,12 @@ export class User {
   })
   status: UserStatus;
 
+  @Prop({ default: false, index: true })
+  isEmailVerified: boolean;
+
+  @Prop()
+  emailVerifiedAt?: Date;
+
   @Prop({ type: UserPreferencesSchema, default: {} })
   preferences?: UserPreferences;
 
@@ -111,6 +117,7 @@ export const UserSchema = SchemaFactory.createForClass(User);
 UserSchema.index({ email: 1 }, { unique: true });
 UserSchema.index({ role: 1, status: 1 });
 UserSchema.index({ status: 1, createdAt: -1 });
+UserSchema.index({ isEmailVerified: 1, createdAt: -1 });
 UserSchema.index(
   { deletedAt: 1 },
   { partialFilterExpression: { deletedAt: { $exists: true } } },

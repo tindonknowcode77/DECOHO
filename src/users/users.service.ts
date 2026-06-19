@@ -54,6 +54,7 @@ export class UsersService {
       role: UserRole.User,
       preferences: createUserDto.preferences,
       status: UserStatus.Active,
+      isEmailVerified: false,
     });
 
     return user;
@@ -137,11 +138,13 @@ export class UsersService {
             passwordHash: `deleted:${randomUUID()}`,
             fullName: 'Deleted User',
             status: UserStatus.Deleted,
+            isEmailVerified: false,
             deletedAt,
             preferences: {},
           },
           $unset: {
             avatar: '',
+            emailVerifiedAt: '',
             lastLoginAt: '',
             refreshTokenHash: '',
           },
@@ -239,6 +242,33 @@ export class UsersService {
     if (!user) {
       throw new NotFoundException('User not found');
     }
+  }
+
+  async markEmailAsVerified(userId: string): Promise<User> {
+    this.assertValidObjectId(userId);
+
+    const user = await this.userModel
+      .findOneAndUpdate(
+        {
+          _id: userId,
+          status: { $ne: UserStatus.Deleted },
+          deletedAt: { $exists: false },
+        },
+        {
+          $set: {
+            isEmailVerified: true,
+            emailVerifiedAt: new Date(),
+          },
+        },
+        { new: true, runValidators: true },
+      )
+      .exec();
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    return user;
   }
 
   private async findActiveUserById(userId: string): Promise<User> {

@@ -5,6 +5,7 @@ import {
   HttpCode,
   HttpStatus,
   Post,
+  Query,
   Req,
   UnauthorizedException,
   UseGuards,
@@ -59,6 +60,22 @@ class RefreshTokenDto {
   refreshToken?: string;
 }
 
+class VerifyEmailTokenDto {
+  @ApiProperty({
+    example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+  })
+  @IsString()
+  @MinLength(20)
+  token: string;
+}
+
+class ResendVerificationTokenDto {
+  @ApiProperty({ example: 'maya@example.com' })
+  @IsEmail()
+  @MaxLength(254)
+  email: string;
+}
+
 type AuthenticatedRequestUser = {
   sub?: string;
   userId?: string;
@@ -79,7 +96,29 @@ export class AuthController {
 
   @Post('register')
   @ApiOperation({ summary: 'Register a new user account' })
-  @ApiCreatedResponse({ description: 'User registered and tokens returned' })
+  @ApiCreatedResponse({
+    description: 'User registered and email verification link generated',
+    schema: {
+      example: {
+        message: 'Registration successful. Please verify your email before login.',
+        user: {
+          id: '666f8b1c8a7f5e0012a11101',
+          email: 'maya@example.com',
+          fullName: 'Maya Chen',
+          role: 'user',
+          status: 'active',
+          isEmailVerified: false,
+        },
+        emailVerification: {
+          message: 'Verification email sent',
+          emailSent: true,
+          verificationLink:
+            'http://localhost:3000/api/verify-email?token=...',
+          expiresIn: '1d',
+        },
+      },
+    },
+  })
   @ApiResponse({ status: 400, description: 'Invalid registration payload' })
   @ApiResponse({ status: 409, description: 'Email is already registered' })
   register(@Body() createUserDto: CreateUserDto) {
@@ -91,7 +130,9 @@ export class AuthController {
   @ApiOperation({ summary: 'Login with email and password' })
   @ApiOkResponse({ description: 'Access and refresh tokens returned' })
   @ApiResponse({ status: 400, description: 'Invalid login payload' })
-  @ApiUnauthorizedResponse({ description: 'Invalid credentials' })
+  @ApiUnauthorizedResponse({
+    description: 'Invalid credentials or email is not verified',
+  })
   login(@Body() loginDto: LoginDto) {
     return this.authService.login(loginDto.email, loginDto.password);
   }
@@ -113,6 +154,168 @@ export class AuthController {
     }
 
     return this.authService.refresh(user.sub, user.refreshToken);
+  }
+
+  @Get('verify-token')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Verify the current JWT access token' })
+  @ApiOkResponse({
+    description: 'Access token is valid',
+    schema: {
+      example: {
+        valid: true,
+        user: {
+          id: '666f8b1c8a7f5e0012a11101',
+          email: 'maya@example.com',
+          fullName: 'Maya Chen',
+          role: 'user',
+          status: 'active',
+          isEmailVerified: false,
+        },
+      },
+    },
+  })
+  @ApiUnauthorizedResponse({ description: 'Missing or invalid access token' })
+  verifyAccessToken(@Req() request: AuthenticatedRequest) {
+    return this.authService.verifyAccessToken(this.getCurrentUserId(request));
+  }
+
+  @Post('resend-token')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Resend email verification link' })
+  @ApiBody({ type: ResendVerificationTokenDto })
+  @ApiOkResponse({
+    description:
+      'Email verification link generated and sent by email when Gmail SMTP is configured.',
+    schema: {
+      example: {
+        message: 'Verification email resent',
+        emailVerification: {
+          message: 'Verification email sent',
+          emailSent: true,
+          verificationLink:
+            'http://localhost:3000/api/verify-email?token=...',
+          expiresIn: '1d',
+        },
+      },
+    },
+  })
+  @ApiResponse({ status: 400, description: 'Email is already verified' })
+  @ApiResponse({ status: 404, description: 'User not found' })
+  resendToken(@Body() dto: ResendVerificationTokenDto) {
+    return this.authService.resendVerificationToken(dto.email);
+  }
+
+  @Post('resend-verification-token')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Legacy alias: resend email verification link' })
+  @ApiBody({ type: ResendVerificationTokenDto })
+  @ApiOkResponse({
+    description:
+      'Email verification link generated and sent by email when Gmail SMTP is configured.',
+    schema: {
+      example: {
+        message: 'Verification email resent',
+        emailVerification: {
+          message: 'Verification email sent',
+          emailSent: true,
+          verificationLink:
+            'http://localhost:3000/api/verify-email?token=...',
+          expiresIn: '1d',
+        },
+      },
+    },
+  })
+  @ApiResponse({ status: 400, description: 'Email is already verified' })
+  @ApiResponse({ status: 404, description: 'User not found' })
+  resendVerificationToken(@Body() dto: ResendVerificationTokenDto) {
+    return this.authService.resendVerificationToken(dto.email);
+  }
+
+  @Get('verify-email')
+  @ApiOperation({ summary: 'Verify email by clicking the email link' })
+  @ApiOkResponse({
+    description: 'Email verified',
+    schema: {
+      example: {
+        valid: true,
+        message: 'Email verified successfully',
+        user: {
+          id: '666f8b1c8a7f5e0012a11101',
+          email: 'maya@example.com',
+          fullName: 'Maya Chen',
+          role: 'user',
+          status: 'active',
+          isEmailVerified: true,
+          emailVerifiedAt: '2026-06-17T10:00:00.000Z',
+        },
+      },
+    },
+  })
+  @ApiUnauthorizedResponse({
+    description: 'Invalid or expired verification token',
+  })
+  verifyEmailLink(@Query('token') token: string) {
+    return this.authService.verifyEmailToken(token);
+  }
+
+  @Post('verify-token')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Verify email with verification token' })
+  @ApiBody({ type: VerifyEmailTokenDto })
+  @ApiOkResponse({
+    description: 'Email verified',
+    schema: {
+      example: {
+        valid: true,
+        message: 'Email verified successfully',
+        user: {
+          id: '666f8b1c8a7f5e0012a11101',
+          email: 'maya@example.com',
+          fullName: 'Maya Chen',
+          role: 'user',
+          status: 'active',
+          isEmailVerified: true,
+          emailVerifiedAt: '2026-06-17T10:00:00.000Z',
+        },
+      },
+    },
+  })
+  @ApiUnauthorizedResponse({
+    description: 'Invalid or expired verification token',
+  })
+  verifyToken(@Body() dto: VerifyEmailTokenDto) {
+    return this.authService.verifyEmailToken(dto.token);
+  }
+
+  @Post('verify-email-token')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Legacy alias: verify email token' })
+  @ApiBody({ type: VerifyEmailTokenDto })
+  @ApiOkResponse({
+    description: 'Email verified',
+    schema: {
+      example: {
+        valid: true,
+        message: 'Email verified successfully',
+        user: {
+          id: '666f8b1c8a7f5e0012a11101',
+          email: 'maya@example.com',
+          fullName: 'Maya Chen',
+          role: 'user',
+          status: 'active',
+          isEmailVerified: true,
+          emailVerifiedAt: '2026-06-17T10:00:00.000Z',
+        },
+      },
+    },
+  })
+  @ApiUnauthorizedResponse({
+    description: 'Invalid or expired verification token',
+  })
+  verifyEmailToken(@Body() dto: VerifyEmailTokenDto) {
+    return this.authService.verifyEmailToken(dto.token);
   }
 
   @Post('logout')
