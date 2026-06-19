@@ -38,17 +38,22 @@ type TokenPair = {
 };
 
 type AuthUserResponse = {
-  id: string;
+  _id: string;
   email: string;
   fullName: string;
   avatar?: unknown;
   role: string;
   status: string;
-  isEmailVerified: boolean;
+  isVerified: boolean;
   preferences?: unknown;
   lastLoginAt?: Date;
   emailVerifiedAt?: Date;
 };
+
+type RegisteredUserResponse = Pick<
+  AuthUserResponse,
+  '_id' | 'email' | 'fullName' | 'role' | 'isVerified'
+>;
 
 type AuthResponse = TokenPair & {
   user: AuthUserResponse;
@@ -64,13 +69,17 @@ type EmailVerificationResponse = {
 
 type RegisterResponse = {
   message: string;
-  user: AuthUserResponse;
-  emailVerification: EmailVerificationResponse;
+  user: RegisteredUserResponse;
+  verifyToken?: string;
+  verifyLink: string;
+  emailSent: boolean;
 };
 
 type ResendVerificationResponse = {
   message: string;
-  emailVerification: EmailVerificationResponse;
+  verifyToken?: string;
+  verifyLink: string;
+  emailSent: boolean;
 };
 
 type VerifyAccessTokenResponse = {
@@ -79,9 +88,7 @@ type VerifyAccessTokenResponse = {
 };
 
 type VerifyEmailTokenResponse = {
-  valid: true;
   message: string;
-  user: AuthUserResponse;
 };
 
 @Injectable()
@@ -106,8 +113,10 @@ export class AuthService {
 
     return {
       message: 'Registration successful. Please verify your email before login.',
-      user: this.toAuthUserResponse(user),
-      emailVerification,
+      user: this.toRegisteredUserResponse(user),
+      verifyToken: emailVerification.verificationToken,
+      verifyLink: emailVerification.verificationLink,
+      emailSent: emailVerification.emailSent,
     };
   }
 
@@ -125,7 +134,7 @@ export class AuthService {
       throw new UnauthorizedException('Invalid email or password');
     }
 
-    if (!user.isEmailVerified) {
+    if (!user.isVerified) {
       throw new UnauthorizedException('Please verify your email before login');
     }
 
@@ -156,7 +165,7 @@ export class AuthService {
       throw new UnauthorizedException('Invalid refresh token');
     }
 
-    if (!user.isEmailVerified) {
+    if (!user.isVerified) {
       throw new UnauthorizedException('Please verify your email before login');
     }
 
@@ -195,7 +204,7 @@ export class AuthService {
       throw new NotFoundException('User not found');
     }
 
-    if (user.isEmailVerified) {
+    if (user.isVerified) {
       throw new BadRequestException('Email is already verified');
     }
 
@@ -204,20 +213,18 @@ export class AuthService {
 
     return {
       message: 'Verification email resent',
-      emailVerification,
+      verifyToken: emailVerification.verificationToken,
+      verifyLink: emailVerification.verificationLink,
+      emailSent: emailVerification.emailSent,
     };
   }
 
   async verifyEmailToken(token: string): Promise<VerifyEmailTokenResponse> {
     const payload = await this.verifyEmailVerificationToken(token);
-    const user = (await this.usersService.markEmailAsVerified(
-      payload.sub,
-    )) as UserWithPrivateFields;
+    await this.usersService.markEmailAsVerified(payload.sub);
 
     return {
-      valid: true,
       message: 'Email verified successfully',
-      user: this.toAuthUserResponse(user),
     };
   }
 
@@ -341,16 +348,30 @@ export class AuthService {
         : (user as unknown as Record<string, unknown>);
 
     return {
-      id: this.getUserId(user),
+      _id: this.getUserId(user),
       email: data.email as string,
       fullName: data.fullName as string,
       avatar: data.avatar,
       role: data.role as string,
       status: data.status as string,
-      isEmailVerified: Boolean(data.isEmailVerified),
+      isVerified: Boolean(data.isVerified),
       preferences: data.preferences,
       lastLoginAt: data.lastLoginAt as Date | undefined,
       emailVerifiedAt: data.emailVerifiedAt as Date | undefined,
+    };
+  }
+
+  private toRegisteredUserResponse(
+    user: UserWithPrivateFields,
+  ): RegisteredUserResponse {
+    const authUser = this.toAuthUserResponse(user);
+
+    return {
+      _id: authUser._id,
+      fullName: authUser.fullName,
+      email: authUser.email,
+      role: authUser.role,
+      isVerified: authUser.isVerified,
     };
   }
 

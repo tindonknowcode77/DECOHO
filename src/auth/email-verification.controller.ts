@@ -20,17 +20,7 @@ export class EmailVerificationController {
     description: 'Email verified',
     schema: {
       example: {
-        valid: true,
         message: 'Email verified successfully',
-        user: {
-          id: '666f8b1c8a7f5e0012a11101',
-          email: 'maya@example.com',
-          fullName: 'Maya Chen',
-          role: 'user',
-          status: 'active',
-          isEmailVerified: true,
-          emailVerifiedAt: '2026-06-19T10:00:00.000Z',
-        },
       },
     },
   })

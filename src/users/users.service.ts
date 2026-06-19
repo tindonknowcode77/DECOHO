@@ -54,7 +54,7 @@ export class UsersService {
       role: UserRole.User,
       preferences: createUserDto.preferences,
       status: UserStatus.Active,
-      isEmailVerified: false,
+      isVerified: false,
     });
 
     return user;
@@ -138,7 +138,7 @@ export class UsersService {
             passwordHash: `deleted:${randomUUID()}`,
             fullName: 'Deleted User',
             status: UserStatus.Deleted,
-            isEmailVerified: false,
+            isVerified: false,
             deletedAt,
             preferences: {},
           },
@@ -256,7 +256,7 @@ export class UsersService {
         },
         {
           $set: {
-            isEmailVerified: true,
+            isVerified: true,
             emailVerifiedAt: new Date(),
           },
         },

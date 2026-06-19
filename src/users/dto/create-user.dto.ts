@@ -48,13 +48,13 @@ export class UserPreferencesDto {
 }
 
 export class CreateUserDto {
-  @ApiProperty({ example: 'maya@example.com' })
+  @ApiProperty({ example: 'vana@gmail.com' })
   @IsEmail()
   @MaxLength(254)
   email: string;
 
   @ApiProperty({
-    example: 'Maya Chen',
+    example: 'Nguyen Van A',
     minLength: 2,
     maxLength: 120,
   })
@@ -64,12 +64,12 @@ export class CreateUserDto {
   fullName: string;
 
   @ApiProperty({
-    example: 'Str0ngP@ssword!',
-    minLength: 8,
+    example: '123456',
+    minLength: 6,
     maxLength: 72,
   })
   @IsString()
-  @MinLength(8)
+  @MinLength(6)
   @MaxLength(72)
   password: string;
 
