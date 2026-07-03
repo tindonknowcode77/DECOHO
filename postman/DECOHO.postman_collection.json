@@ -1,0 +1,1295 @@
+{
+  "info": {
+    "_postman_id": "cc2f7201-3b24-4a78-a30d-decoho000001",
+    "name": "DECOHO Backend API",
+    "description": "Single-file Postman collection for DECOHO Backend. Auth flow: Register -> Verify Email Link or Verify Token -> Login. If emailSent is false, configure Gmail SMTP or open verificationLink manually.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{accessToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          ""
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "function readJson() {",
+          "  try { return pm.response.json(); } catch (error) { return null; }",
+          "}",
+          "",
+          "function setVar(key, value) {",
+          "  if (value === undefined || value === null || value === \"\") return;",
+          "  pm.collectionVariables.set(key, String(value));",
+          "}",
+          "",
+          "function getId(value) {",
+          "  if (!value) return null;",
+          "  if (typeof value === \"string\") return value;",
+          "  return value._id || value.id || value.decorPlanId || value.productId || null;",
+          "}",
+          "",
+          "const json = readJson();",
+          "if (!json) return;",
+          "",
+          "const first = Array.isArray(json) ? json[0] : json;",
+          "const requestName = pm.info.requestName.toLowerCase();",
+          "",
+          "setVar(\"accessToken\", json.accessToken);",
+          "setVar(\"refreshToken\", json.refreshToken);",
+          "setVar(\"verificationToken\", json.verifyToken);",
+          "setVar(\"verificationLink\", json.verifyLink);",
+          "setVar(\"emailSent\", json.emailSent);",
+          "",
+          "if (json.emailSent === false && json.verifyLink) {",
+          "  console.warn(\"Email was not sent. Configure MAIL_USER and MAIL_PASS, or open verificationLink manually:\", json.verifyLink);",
+          "}",
+          "",
+          "if (json.user) {",
+          "  setVar(\"userId\", getId(json.user));",
+          "  setVar(\"fullName\", json.user.fullName);",
+          "}",
+          "",
+          "if (requestName.includes(\"room\")) {",
+          "  setVar(\"roomId\", getId(first));",
+          "}",
+          "",
+          "if (requestName.includes(\"product\")) {",
+          "  setVar(\"productId\", getId(first));",
+          "}",
+          "",
+          "if (requestName.includes(\"decor plan\")) {",
+          "  setVar(\"decorPlanId\", json.decorPlanId || getId(first));",
+          "  if (Array.isArray(json.recommendedProducts) && json.recommendedProducts[0]) {",
+          "    setVar(\"productId\", getId(json.recommendedProducts[0]));",
+          "  }",
+          "}",
+          "",
+          "if (requestName.includes(\"favorite\")) {",
+          "  setVar(\"favoriteId\", getId(first));",
+          "  if (first && first.decorPlanId) {",
+          "    setVar(\"decorPlanId\", getId(first.decorPlanId));",
+          "  }",
+          "}"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "host_main",
+      "value": "http://localhost:3000/api",
+      "type": "string"
+    },
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000/api",
+      "type": "string"
+    },
+    {
+      "key": "baseurl",
+      "value": "http://localhost:3000/api",
+      "type": "string"
+    },
+    {
+      "key": "fullName",
+      "value": "Nguyen Van A",
+      "type": "string"
+    },
+    {
+      "key": "email",
+      "value": "vana@gmail.com",
+      "type": "string"
+    },
+    {
+      "key": "password",
+      "value": "123456",
+      "type": "string"
+    },
+    {
+      "key": "adminEmail",
+      "value": "admin@decoho.local",
+      "type": "string"
+    },
+    {
+      "key": "adminPassword",
+      "value": "AdminP@ssword123",
+      "type": "string"
+    },
+    {
+      "key": "accessToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "refreshToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "verificationToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "verificationLink",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "emailSent",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "userId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "roomId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "productId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "decorPlanId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "favoriteId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "style",
+      "value": "Minimalist",
+      "type": "string"
+    },
+    {
+      "key": "budget",
+      "value": "5000000",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "01 Auth - Tokens",
+      "item": [
+        {
+          "name": "Register",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"{{fullName}}\",\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:3000/api/auth/register",
+              "host": [
+                "localhost"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "register"
+              ],
+              "protocol": "http",
+              "port": "3000"
+            },
+            "description": "Registers the email, creates verifyToken/verifyLink, and attempts to send Gmail verification email. If emailSent=false, configure MAIL_USER/MAIL_PASS or open verificationLink manually."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Register success', function () {",
+                  "  pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "if (json.user && (json.user._id || json.user.id)) pm.collectionVariables.set('userId', json.user._id || json.user.id);",
+                  "if (json.user && json.user.fullName) pm.collectionVariables.set('fullName', json.user.fullName);",
+                  "if (json.verifyToken) pm.collectionVariables.set('verificationToken', json.verifyToken);",
+                  "if (json.verifyLink) pm.collectionVariables.set('verificationLink', json.verifyLink);",
+                  "if (json.emailSent !== undefined) pm.collectionVariables.set('emailSent', String(json.emailSent));",
+                  "if (json.emailSent === false && json.verifyLink) console.warn('Email was not sent. Open verificationLink manually or configure Gmail SMTP:', json.verifyLink);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Resend Token",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:3000/api/auth/resend-token",
+              "host": [
+                "localhost"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "resend-token"
+              ],
+              "protocol": "http",
+              "port": "3000"
+            },
+            "description": "Generate/send a new verification email link. If emailSent=false, configure Gmail SMTP or open verificationLink manually."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Resend token success', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "if (json.verifyToken) pm.collectionVariables.set('verificationToken', json.verifyToken);",
+                  "if (json.verifyLink) pm.collectionVariables.set('verificationLink', json.verifyLink);",
+                  "if (json.emailSent !== undefined) pm.collectionVariables.set('emailSent', String(json.emailSent));",
+                  "if (json.emailSent === false && json.verifyLink) console.warn('Email was not sent. Open verificationLink manually or configure Gmail SMTP:', json.verifyLink);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Verify Token",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"{{verificationToken}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:3000/api/auth/verify-token",
+              "host": [
+                "localhost"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "verify-token"
+              ],
+              "protocol": "http",
+              "port": "3000"
+            },
+            "description": "Verify user email using verificationToken from Register or Resend Token. You can also open verificationLink directly in the browser."
+          }
+        },
+        {
+          "name": "Verify Email Link",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3000/api/verify-email?token={{verificationToken}}",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "api",
+                "verify-email"
+              ],
+              "query": [
+                {
+                  "key": "token",
+                  "value": "{{verificationToken}}"
+                }
+              ]
+            },
+            "description": "Mirrors Gmail click flow. Use this after Register when emailSent=false or when testing manually."
+          }
+        },
+        {
+          "name": "Login",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:3000/api/auth/login",
+              "host": [
+                "localhost"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ],
+              "protocol": "http",
+              "port": "3000"
+            },
+            "description": "Login after email verification succeeds. This request stores accessToken, refreshToken, and userId automatically. Auth user response is minimal and does not include preferences."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Login success', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "if (json.accessToken) pm.collectionVariables.set('accessToken', json.accessToken);",
+                  "if (json.refreshToken) pm.collectionVariables.set('refreshToken', json.refreshToken);",
+                  "if (json.user && (json.user._id || json.user.id)) pm.collectionVariables.set('userId', json.user._id || json.user.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Admin Login",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{adminPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:3000/api/auth/login",
+              "host": [
+                "localhost"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ],
+              "protocol": "http",
+              "port": "3000"
+            },
+            "description": "Login with an ADMIN account before calling POST /products or GET /admin/dashboard."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Admin login success', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "if (json.accessToken) pm.collectionVariables.set('accessToken', json.accessToken);",
+                  "if (json.refreshToken) pm.collectionVariables.set('refreshToken', json.refreshToken);",
+                  "if (json.user && (json.user._id || json.user.id)) pm.collectionVariables.set('userId', json.user._id || json.user.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Refresh Token",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{refreshToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:3000/api/auth/refresh",
+              "host": [
+                "localhost"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "refresh"
+              ],
+              "protocol": "http",
+              "port": "3000"
+            },
+            "description": "Rotate refresh token and receive a new access token. Sends refresh token as Bearer token and body for compatibility."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Refresh success', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "if (json.accessToken) pm.collectionVariables.set('accessToken', json.accessToken);",
+                  "if (json.refreshToken) pm.collectionVariables.set('refreshToken', json.refreshToken);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Verify Access Token",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3000/api/auth/verify-token",
+              "host": [
+                "localhost"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "verify-token"
+              ],
+              "protocol": "http",
+              "port": "3000"
+            },
+            "description": "Verify the current Bearer accessToken and return the authenticated user."
+          }
+        },
+        {
+          "name": "Get Auth Profile",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3000/api/auth/profile",
+              "host": [
+                "localhost"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "profile"
+              ],
+              "protocol": "http",
+              "port": "3000"
+            },
+            "description": "Get authenticated user profile using JWT access token."
+          }
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3000/api/auth/logout",
+              "host": [
+                "localhost"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "logout"
+              ],
+              "protocol": "http",
+              "port": "3000"
+            },
+            "description": "Revoke the current stored refresh token."
+          }
+        }
+      ],
+      "description": "Email link flow: Register -> Verify Email Link or Verify Token -> Login. Register/Resend stores verifyToken, verifyLink, and emailSent."
+    },
+    {
+      "name": "02 Users - Profile",
+      "item": [
+        {
+          "name": "Get Profile",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3000/api/users/me",
+              "host": [
+                "localhost"
+              ],
+              "path": [
+                "api",
+                "users",
+                "me"
+              ],
+              "protocol": "http",
+              "port": "3000"
+            }
+          }
+        },
+        {
+          "name": "Update Profile",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"{{fullName}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:3000/api/users/me",
+              "host": [
+                "localhost"
+              ],
+              "path": [
+                "api",
+                "users",
+                "me"
+              ],
+              "protocol": "http",
+              "port": "3000"
+            },
+            "description": "Updates only the current user profile fields you send. This sample updates fullName only."
+          }
+        },
+        {
+          "name": "Upload Avatar",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "avatar",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            },
+            "url": {
+              "raw": "http://localhost:3000/api/users/me/avatar",
+              "host": [
+                "localhost"
+              ],
+              "path": [
+                "api",
+                "users",
+                "me",
+                "avatar"
+              ],
+              "protocol": "http",
+              "port": "3000"
+            },
+            "description": "Select an image file in the avatar field before sending."
+          }
+        },
+        {
+          "name": "Delete Account",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3000/api/users/me",
+              "host": [
+                "localhost"
+              ],
+              "path": [
+                "api",
+                "users",
+                "me"
+              ],
+              "protocol": "http",
+              "port": "3000"
+            }
+          }
+        }
+      ],
+      "description": "Uses accessToken from Auth to get, update, upload avatar, or delete the current user profile."
+    },
+    {
+      "name": "03 Rooms - Data",
+      "item": [
+        {
+          "name": "Upload Room",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "image",
+                  "type": "file",
+                  "src": []
+                },
+                {
+                  "key": "roomType",
+                  "value": "living_room",
+                  "type": "text"
+                },
+                {
+                  "key": "width",
+                  "value": "4.5",
+                  "type": "text"
+                },
+                {
+                  "key": "length",
+                  "value": "6.2",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "http://localhost:3000/api/rooms/upload",
+              "host": [
+                "localhost"
+              ],
+              "path": [
+                "api",
+                "rooms",
+                "upload"
+              ],
+              "protocol": "http",
+              "port": "3000"
+            },
+            "description": "Upload a room image to Cloudinary and create a room document."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Room uploaded', function () {",
+                  "  pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "if (json._id) pm.collectionVariables.set('roomId', json._id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Rooms",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3000/api/rooms",
+              "host": [
+                "localhost"
+              ],
+              "path": [
+                "api",
+                "rooms"
+              ],
+              "protocol": "http",
+              "port": "3000"
+            },
+            "description": "Returns rooms for the current user. If at least one room exists, roomId is saved automatically."
+          }
+        },
+        {
+          "name": "Get Room By ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3000/api/rooms/{{roomId}}",
+              "host": [
+                "localhost"
+              ],
+              "path": [
+                "api",
+                "rooms",
+                "{{roomId}}"
+              ],
+              "protocol": "http",
+              "port": "3000"
+            }
+          }
+        },
+        {
+          "name": "Delete Room",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3000/api/rooms/{{roomId}}",
+              "host": [
+                "localhost"
+              ],
+              "path": [
+                "api",
+                "rooms",
+                "{{roomId}}"
+              ],
+              "protocol": "http",
+              "port": "3000"
+            }
+          }
+        }
+      ],
+      "description": "Upload or get rooms. The collection stores roomId automatically from upload/list/detail responses."
+    },
+    {
+      "name": "04 AI - Analysis",
+      "item": [
+        {
+          "name": "Analyze Room",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3000/api/ai/rooms/{{roomId}}/analyze",
+              "host": [
+                "localhost"
+              ],
+              "path": [
+                "api",
+                "ai",
+                "rooms",
+                "{{roomId}}",
+                "analyze"
+              ],
+              "protocol": "http",
+              "port": "3000"
+            }
+          }
+        },
+        {
+          "name": "Detect Objects",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3000/api/ai/rooms/{{roomId}}/objects",
+              "host": [
+                "localhost"
+              ],
+              "path": [
+                "api",
+                "ai",
+                "rooms",
+                "{{roomId}}",
+                "objects"
+              ],
+              "protocol": "http",
+              "port": "3000"
+            }
+          }
+        },
+        {
+          "name": "Detect Colors",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3000/api/ai/rooms/{{roomId}}/colors",
+              "host": [
+                "localhost"
+              ],
+              "path": [
+                "api",
+                "ai",
+                "rooms",
+                "{{roomId}}",
+                "colors"
+              ],
+              "protocol": "http",
+              "port": "3000"
+            }
+          }
+        },
+        {
+          "name": "Classify Room Type",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3000/api/ai/rooms/{{roomId}}/type",
+              "host": [
+                "localhost"
+              ],
+              "path": [
+                "api",
+                "ai",
+                "rooms",
+                "{{roomId}}",
+                "type"
+              ],
+              "protocol": "http",
+              "port": "3000"
+            }
+          }
+        }
+      ],
+      "description": "Uses roomId to analyze uploaded room data."
+    },
+    {
+      "name": "05 Products - Data",
+      "item": [
+        {
+          "name": "Create Product - ADMIN",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Minimalist Wooden Desk\",\n  \"price\": 4500000,\n  \"image\": \"https://res.cloudinary.com/decoho/image/upload/products/desk.jpg\",\n  \"styleTags\": [\"minimalist\", \"modern\", \"workspace\"],\n  \"category\": \"desk\",\n  \"ecommercePlatform\": \"IKEA\",\n  \"productLink\": \"https://www.ikea.com/us/en/p/example-product\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:3000/api/products",
+              "host": [
+                "localhost"
+              ],
+              "path": [
+                "api",
+                "products"
+              ],
+              "protocol": "http",
+              "port": "3000"
+            },
+            "description": "Requires ADMIN access token."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Product created', function () {",
+                  "  pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "if (json._id) pm.collectionVariables.set('productId', json._id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Products",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3000/api/products",
+              "host": [
+                "localhost"
+              ],
+              "path": [
+                "api",
+                "products"
+              ],
+              "protocol": "http",
+              "port": "3000"
+            },
+            "description": "Returns products. If at least one product exists, productId is saved automatically."
+          }
+        },
+        {
+          "name": "Get Product By ID",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3000/api/products/{{productId}}",
+              "host": [
+                "localhost"
+              ],
+              "path": [
+                "api",
+                "products",
+                "{{productId}}"
+              ],
+              "protocol": "http",
+              "port": "3000"
+            }
+          }
+        },
+        {
+          "name": "Get Products By Style",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3000/api/products/style/{{style}}",
+              "host": [
+                "localhost"
+              ],
+              "path": [
+                "api",
+                "products",
+                "style",
+                "{{style}}"
+              ],
+              "protocol": "http",
+              "port": "3000"
+            }
+          }
+        },
+        {
+          "name": "Get Products By Budget",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3000/api/products/budget/{{budget}}",
+              "host": [
+                "localhost"
+              ],
+              "path": [
+                "api",
+                "products",
+                "budget",
+                "{{budget}}"
+              ],
+              "protocol": "http",
+              "port": "3000"
+            }
+          }
+        }
+      ],
+      "description": "Get products or create products as ADMIN. The collection stores productId automatically."
+    },
+    {
+      "name": "06 Decor Plans - Data",
+      "item": [
+        {
+          "name": "Generate Decor Plan",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"roomId\": \"{{roomId}}\",\n  \"budget\": {{budget}},\n  \"style\": \"{{style}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:3000/api/decor-plans/generate",
+              "host": [
+                "localhost"
+              ],
+              "path": [
+                "api",
+                "decor-plans",
+                "generate"
+              ],
+              "protocol": "http",
+              "port": "3000"
+            },
+            "description": "Generates and saves a decor plan. decorPlanId is saved automatically from the response."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Decor plan generated', function () {",
+                  "  pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "const decorPlanId = json.decorPlanId || json.id || json._id;",
+                  "if (decorPlanId) pm.collectionVariables.set('decorPlanId', decorPlanId);"
+                ]
+              }
+            }
+          ]
+        }
+      ],
+      "description": "Generate a decor plan from roomId, budget, and style. The collection stores decorPlanId automatically."
+    },
+    {
+      "name": "07 Favorites - Data",
+      "item": [
+        {
+          "name": "Save Decor Plan",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"decorPlanId\": \"{{decorPlanId}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:3000/api/favorites",
+              "host": [
+                "localhost"
+              ],
+              "path": [
+                "api",
+                "favorites"
+              ],
+              "protocol": "http",
+              "port": "3000"
+            },
+            "description": "decorPlanId must belong to the current authenticated user. Use a saved decor plan id from MongoDB or let Generate Decor Plan set decorPlanId if your backend returns the created plan id."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Favorite saved', function () {",
+                  "  pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "if (json._id) pm.collectionVariables.set('favoriteId', json._id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Favorites",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3000/api/favorites",
+              "host": [
+                "localhost"
+              ],
+              "path": [
+                "api",
+                "favorites"
+              ],
+              "protocol": "http",
+              "port": "3000"
+            },
+            "description": "Returns favorites for the current user. favoriteId and decorPlanId are saved automatically when data exists."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (Array.isArray(json) && json[0] && json[0]._id) {",
+                  "  pm.collectionVariables.set('favoriteId', json[0]._id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Remove Favorite",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3000/api/favorites/{{favoriteId}}",
+              "host": [
+                "localhost"
+              ],
+              "path": [
+                "api",
+                "favorites",
+                "{{favoriteId}}"
+              ],
+              "protocol": "http",
+              "port": "3000"
+            }
+          }
+        }
+      ],
+      "description": "Save and list decor plan favorites. The collection stores favoriteId automatically."
+    },
+    {
+      "name": "08 Admin - Dashboard",
+      "item": [
+        {
+          "name": "Dashboard",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3000/api/admin/dashboard",
+              "host": [
+                "localhost"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "dashboard"
+              ],
+              "protocol": "http",
+              "port": "3000"
+            },
+            "description": "Requires ADMIN access token."
+          }
+        }
+      ],
+      "description": "Requires an ADMIN access token from Admin Login."
+    }
+  ]
+}
