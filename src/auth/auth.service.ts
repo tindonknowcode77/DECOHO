@@ -9,8 +9,9 @@ import { JwtService, JwtSignOptions } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { MailService } from '../mail/mail.service';
 import { CreateUserDto } from '../users/dto/create-user.dto';
-import { User } from '../users/user.schema';
+import { User, UserStatus } from '../users/user.schema';
 import { UsersService } from '../users/users.service';
+import { normalizeRole, Role } from '../common/enums/roles.enum';
 
 type UserWithPrivateFields = User & {
   id?: string;
@@ -47,6 +48,7 @@ type AuthUserResponse = {
   isVerified: boolean;
   lastLoginAt?: Date;
   emailVerifiedAt?: Date;
+  onboardingCompleted: boolean;
 };
 
 type RegisteredUserResponse = Pick<
@@ -88,6 +90,18 @@ type VerifyAccessTokenResponse = {
 
 type VerifyEmailTokenResponse = {
   message: string;
+};
+
+type GoogleTokenInfo = {
+  aud?: string;
+  email?: string;
+  email_verified?: string;
+  exp?: string;
+  given_name?: string;
+  iss?: string;
+  name?: string;
+  picture?: string;
+  sub?: string;
 };
 
 @Injectable()
@@ -137,6 +151,10 @@ export class AuthService {
       throw new UnauthorizedException('Please verify your email before login');
     }
 
+    if (user.status !== UserStatus.Active) {
+      throw new UnauthorizedException('Account is suspended');
+    }
+
     const tokens = await this.generateTokens(user);
     await this.storeRefreshToken(user, tokens.refreshToken);
 
@@ -144,6 +162,43 @@ export class AuthService {
       ...tokens,
       user: this.toAuthUserResponse(user),
     };
+  }
+
+  async googleLogin(credential: string): Promise<AuthResponse> {
+    const clientId = process.env.GOOGLE_CLIENT_ID ?? process.env.VITE_GOOGLE_CLIENT_ID;
+    if (!clientId) {
+      throw new InternalServerErrorException('GOOGLE_CLIENT_ID is not configured');
+    }
+
+    let response: Response;
+    try {
+      response = await fetch(
+        `https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(credential)}`,
+        { headers: { Accept: 'application/json' }, signal: AbortSignal.timeout(10000) },
+      );
+    } catch {
+      throw new UnauthorizedException('Unable to verify Google login');
+    }
+
+    if (!response.ok) throw new UnauthorizedException('Invalid Google ID token');
+    const profile = (await response.json()) as GoogleTokenInfo;
+    const issuerIsValid = profile.iss === 'accounts.google.com' || profile.iss === 'https://accounts.google.com';
+    const isValid = profile.aud === clientId && profile.email_verified === 'true' && Boolean(profile.email && profile.sub) && issuerIsValid && Number(profile.exp ?? 0) * 1000 > Date.now();
+    if (!isValid || !profile.email || !profile.sub) {
+      throw new UnauthorizedException('Google account could not be verified');
+    }
+
+    const user = (await this.usersService.findOrCreateGoogleUser({
+      googleId: profile.sub,
+      email: profile.email,
+      fullName: profile.name || profile.given_name || profile.email.split('@')[0],
+      avatarUrl: profile.picture,
+    })) as UserWithPrivateFields;
+    if (user.status !== UserStatus.Active) throw new UnauthorizedException('Account is suspended');
+
+    const tokens = await this.generateTokens(user);
+    await this.storeRefreshToken(user, tokens.refreshToken);
+    return { ...tokens, user: this.toAuthUserResponse(user) };
   }
 
   async refresh(userId: string, refreshToken: string): Promise<AuthResponse> {
@@ -166,6 +221,10 @@ export class AuthService {
 
     if (!user.isVerified) {
       throw new UnauthorizedException('Please verify your email before login');
+    }
+
+    if (user.status !== UserStatus.Active) {
+      throw new UnauthorizedException('Account is suspended');
     }
 
     const tokens = await this.generateTokens(user);
@@ -308,7 +367,7 @@ export class AuthService {
     const payload: TokenPayload = {
       sub: this.getUserId(user),
       email: user.email,
-      role: user.role,
+      role: this.normalizeUserRole(user.role),
     };
 
     const [accessToken, refreshToken] = await Promise.all([
@@ -351,11 +410,12 @@ export class AuthService {
       email: data.email as string,
       fullName: data.fullName as string,
       avatar: data.avatar,
-      role: data.role as string,
+      role: this.normalizeUserRole(data.role as string),
       status: data.status as string,
       isVerified: Boolean(data.isVerified),
       lastLoginAt: data.lastLoginAt as Date | undefined,
       emailVerifiedAt: data.emailVerifiedAt as Date | undefined,
+      onboardingCompleted: Boolean(data.onboardingCompleted),
     };
   }
 
@@ -381,6 +441,10 @@ export class AuthService {
     }
 
     return userId;
+  }
+
+  private normalizeUserRole(role?: string): Role {
+    return normalizeRole(role) ?? Role.USER;
   }
 
   private getRequiredEnv(name: string): string {

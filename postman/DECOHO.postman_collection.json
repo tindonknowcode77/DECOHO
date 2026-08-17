@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "cc2f7201-3b24-4a78-a30d-decoho000001",
     "name": "DECOHO Backend API",
-    "description": "Single-file Postman collection for DECOHO Backend. Auth flow: Register -> Verify Email Link or Verify Token -> Login. If emailSent is false, configure Gmail SMTP or open verificationLink manually.",
+    "description": "Single-file Postman collection for DECOHO Backend. Auth flow: Register -> Verify Email Link or Verify Token -> Login. User APIs use userAccessToken. Admin APIs use adminAccessToken. If emailSent is false, configure Gmail SMTP or open verificationLink manually.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -10,7 +10,7 @@
     "bearer": [
       {
         "key": "token",
-        "value": "{{accessToken}}",
+        "value": "{{userAccessToken}}",
         "type": "string"
       }
     ]
@@ -42,7 +42,7 @@
           "function getId(value) {",
           "  if (!value) return null;",
           "  if (typeof value === \"string\") return value;",
-          "  return value._id || value.id || value.decorPlanId || value.productId || null;",
+          "  return value.roomId || value._id || value.id || value.decorPlanId || value.productId || null;",
           "}",
           "",
           "const json = readJson();",
@@ -51,8 +51,21 @@
           "const first = Array.isArray(json) ? json[0] : json;",
           "const requestName = pm.info.requestName.toLowerCase();",
           "",
-          "setVar(\"accessToken\", json.accessToken);",
-          "setVar(\"refreshToken\", json.refreshToken);",
+          "const isAdminLogin = requestName.includes(\"admin login\");",
+          "const isUserLogin = requestName.includes(\"login\") && !requestName.includes(\"admin\");",
+          "",
+          "if (isAdminLogin) {",
+          "  setVar(\"adminAccessToken\", json.accessToken);",
+          "  setVar(\"adminRefreshToken\", json.refreshToken);",
+          "} else {",
+          "  setVar(\"accessToken\", json.accessToken);",
+          "  setVar(\"refreshToken\", json.refreshToken);",
+          "}",
+          "",
+          "if (isUserLogin) {",
+          "  setVar(\"userAccessToken\", json.accessToken);",
+          "  setVar(\"userRefreshToken\", json.refreshToken);",
+          "}",
           "setVar(\"verificationToken\", json.verifyToken);",
           "setVar(\"verificationLink\", json.verifyLink);",
           "setVar(\"emailSent\", json.emailSent);",
@@ -62,8 +75,12 @@
           "}",
           "",
           "if (json.user) {",
-          "  setVar(\"userId\", getId(json.user));",
-          "  setVar(\"fullName\", json.user.fullName);",
+          "  if (isAdminLogin) {",
+          "    setVar(\"adminUserId\", getId(json.user));",
+          "  } else {",
+          "    setVar(\"userId\", getId(json.user));",
+          "  }",
+          "  if (!isAdminLogin) setVar(\"fullName\", json.user.fullName);",
           "}",
           "",
           "if (requestName.includes(\"room\")) {",
@@ -86,7 +103,933 @@
           "  if (first && first.decorPlanId) {",
           "    setVar(\"decorPlanId\", getId(first.decorPlanId));",
           "  }",
-          "}"
+          "}",
+          "",
+          "if (requestName.includes(\"ai scanner\")) {",
+          "  setVar(\"scanResultId\", getId(first));",
+          "}",
+          "",
+          "const idMappings = [",
+          "  [\"category\", \"categoryId\"], [\"brand\", \"brandId\"],",
+          "  [\"supplier\", \"supplierId\"], [\"order\", \"orderId\"],",
+          "  [\"payment\", \"paymentId\"], [\"promotion\", \"promotionId\"],",
+          "  [\"product space\", \"productSpaceId\"], [\"showroom\", \"showroomId\"],",
+          "  [\"review\", \"reviewId\"], [\"ticket\", \"ticketId\"],",
+          "  [\"website content\", \"websiteContentId\"]",
+          "];",
+          "idMappings.forEach(function (entry) { if (requestName.includes(entry[0])) setVar(entry[1], getId(first)); });",
+          "",
+          "const source = Array.isArray(json) ? json[0] : json;",
+          "if (source && Array.isArray(source.productPoints) && source.productPoints.length) setVar(\"pointId\", getId(source.productPoints[source.productPoints.length - 1]));",
+          "if (source && Array.isArray(source.items) && source.items.length) setVar(\"showroomItemId\", getId(source.items[source.items.length - 1]));",
+          "if (source && Array.isArray(source.products) && source.products.length) setVar(\"detectionId\", getId(source.products[0]));",
+          "if (source && Array.isArray(source.reports) && source.reports.length) setVar(\"reportId\", getId(source.reports[source.reports.length - 1]));",
+          "if (source && source.assignedStaffId) setVar(\"staffId\", getId(source.assignedStaffId));",
+          "if (source && source.supplierId) setVar(\"supplierId\", getId(source.supplierId));",
+          "if (source && source.userId && requestName.includes(\"staff\")) setVar(\"staffId\", getId(source.userId));",
+          "if (source && source._id && requestName.includes(\"scanner\")) setVar(\"scanResultId\", source._id);",
+          "if (source && source.products && source.products[0] && requestName.includes(\"scanner\")) setVar(\"detectionId\", getId(source.products[0]));",
+          "if (source && source.reports && source.reports[0]) setVar(\"reportId\", getId(source.reports[0]));",
+          "if (source && source.messages && requestName.includes(\"ticket\")) setVar(\"ticketId\", getId(source));",
+          "if (source && source.productPoints && requestName.includes(\"product point\")) setVar(\"pointId\", getId(source.productPoints[source.productPoints.length - 1]));",
+          "if (source && source.items && requestName.includes(\"showroom item\")) setVar(\"showroomItemId\", getId(source.items[source.items.length - 1]));",
+          "if (source && source.customerId && requestName.includes(\"ticket\")) setVar(\"ticketId\", getId(source));",
+          "if (source && source.productId && requestName.includes(\"review\")) setVar(\"reviewId\", getId(source));",
+          "if (source && source.code && requestName.includes(\"promotion\")) setVar(\"promotionId\", getId(source));",
+          "if (source && source.orderCode) setVar(\"orderId\", getId(source));",
+          "if (source && source.ticketCode) setVar(\"ticketId\", getId(source));",
+          "if (source && source.environmentModelUrl) setVar(\"showroomId\", getId(source));",
+          "if (source && source.roomType && source.productPoints) setVar(\"productSpaceId\", getId(source));",
+          "if (source && source.model && source.products && source.roomType) setVar(\"scanResultId\", getId(source));",
+          "if (source && source.status && source.rating) setVar(\"reviewId\", getId(source));",
+          "if (source && source.discountType) setVar(\"promotionId\", getId(source));",
+          "if (source && source.paymentMethod && source.orderCode) setVar(\"orderId\", getId(source));",
+          "if (source && source.grossAmount) setVar(\"paymentId\", getId(source));",
+          "if (source && source.parentId !== undefined && source.name && requestName.includes(\"category\")) setVar(\"categoryId\", getId(source));",
+          "if (source && source.supplierIds && source.name && requestName.includes(\"brand\")) setVar(\"brandId\", getId(source));",
+          "if (source && source.role === \"SUPPLIER\") setVar(\"supplierId\", getId(source));",
+          "if (source && (source.role === \"STAFF\" || source.role === \"ADMIN\")) setVar(\"staffId\", getId(source));",
+          "if (source && source._id && requestName.includes(\"product\")) setVar(\"productId\", getId(source));",
+          "if (source && source._id && requestName.includes(\"category\")) setVar(\"categoryId\", getId(source));",
+          "if (source && source._id && requestName.includes(\"brand\")) setVar(\"brandId\", getId(source));",
+          "if (source && source._id && requestName.includes(\"payment\")) setVar(\"paymentId\", getId(source));",
+          "if (source && source._id && requestName.includes(\"promotion\")) setVar(\"promotionId\", getId(source));",
+          "if (source && source._id && requestName.includes(\"showroom\")) setVar(\"showroomId\", getId(source));",
+          "if (source && source._id && requestName.includes(\"review\")) setVar(\"reviewId\", getId(source));",
+          "if (source && source._id && requestName.includes(\"ticket\")) setVar(\"ticketId\", getId(source));",
+          "if (source && source._id && requestName.includes(\"order\")) setVar(\"orderId\", getId(source));",
+          "if (source && source._id && requestName.includes(\"supplier\")) setVar(\"supplierId\", getId(source));",
+          "if (source && source._id && requestName.includes(\"staff\")) setVar(\"staffId\", getId(source));",
+          "if (source && source._id && requestName.includes(\"product space\")) setVar(\"productSpaceId\", getId(source));",
+          "if (source && source._id && requestName.includes(\"detection\")) setVar(\"detectionId\", getId(source));",
+          "if (source && source._id && requestName.includes(\"report\")) setVar(\"reportId\", getId(source));",
+          "if (source && source._id && requestName.includes(\"point\")) setVar(\"pointId\", getId(source));",
+          "if (source && source._id && requestName.includes(\"item\")) setVar(\"showroomItemId\", getId(source));",
+          "if (source && source._id && requestName.includes(\"space\")) setVar(\"productSpaceId\", getId(source));",
+          "if (source && source._id && requestName.includes(\"scan\")) setVar(\"scanResultId\", getId(source));",
+          "if (source && source._id && requestName.includes(\"user detail\")) setVar(\"userId\", getId(source));",
+          "if (source && source._id && requestName.includes(\"supplier detail\")) setVar(\"supplierId\", getId(source));",
+          "if (source && source._id && requestName.includes(\"admin user\")) setVar(\"userId\", getId(source));",
+          "if (source && source._id && requestName.includes(\"assign\")) setVar(\"ticketId\", getId(source));",
+          "if (source && source._id && requestName.includes(\"resolve\")) setVar(\"reviewId\", getId(source));",
+          "if (source && source._id && requestName.includes(\"moderate\")) setVar(\"productId\", getId(source));",
+          "if (source && source._id && requestName.includes(\"payout\")) setVar(\"paymentId\", getId(source));",
+          "if (source && source._id && requestName.includes(\"refund\")) { if (source.orderCode) setVar(\"orderId\", getId(source)); else setVar(\"paymentId\", getId(source)); }",
+          "if (source && source._id && requestName.includes(\"create showroom\")) setVar(\"showroomId\", getId(source));",
+          "if (source && source._id && requestName.includes(\"create promotion\")) setVar(\"promotionId\", getId(source));",
+          "if (source && source._id && requestName.includes(\"create review\")) setVar(\"reviewId\", getId(source));",
+          "if (source && source._id && requestName.includes(\"create support ticket\")) setVar(\"ticketId\", getId(source));",
+          "if (source && source._id && requestName.includes(\"create order\")) setVar(\"orderId\", getId(source));",
+          "if (source && source._id && requestName.includes(\"create category\")) setVar(\"categoryId\", getId(source));",
+          "if (source && source._id && requestName.includes(\"create brand\")) setVar(\"brandId\", getId(source));",
+          "if (source && source._id && requestName.includes(\"upload product space\")) setVar(\"productSpaceId\", getId(source));",
+          "if (source && source._id && requestName.includes(\"scanner history\")) setVar(\"scanResultId\", getId(source));",
+          "if (source && source.products && source.products[0] && source.products[0]._id) setVar(\"detectionId\", source.products[0]._id);",
+          "if (source && source.reports && source.reports[0] && source.reports[0]._id) setVar(\"reportId\", source.reports[0]._id);",
+          "if (source && source.productPoints && source.productPoints[0] && source.productPoints[0]._id) setVar(\"pointId\", source.productPoints[0]._id);",
+          "if (source && source.items && source.items[0] && source.items[0]._id) setVar(\"showroomItemId\", source.items[0]._id);",
+          "if (source && source.assignedStaffId && source.assignedStaffId._id) setVar(\"staffId\", source.assignedStaffId._id);",
+          "if (source && source.supplierId && source.supplierId._id) setVar(\"supplierId\", source.supplierId._id);",
+          "if (source && source.customerId && source.customerId._id) setVar(\"userId\", source.customerId._id);",
+          "if (source && source.productId && source.productId._id) setVar(\"productId\", source.productId._id);",
+          "if (source && source.orderId && source.orderId._id) setVar(\"orderId\", source.orderId._id);",
+          "if (source && source._id && source.ticketCode) setVar(\"ticketId\", source._id);",
+          "if (source && source._id && source.orderCode) setVar(\"orderId\", source._id);",
+          "if (source && source._id && source.discountType) setVar(\"promotionId\", source._id);",
+          "if (source && source._id && source.rating) setVar(\"reviewId\", source._id);",
+          "if (source && source._id && source.environmentModelUrl !== undefined) setVar(\"showroomId\", source._id);",
+          "if (source && source._id && source.productPoints !== undefined) setVar(\"productSpaceId\", source._id);",
+          "if (source && source._id && source.confidenceThreshold !== undefined) setVar(\"scanResultId\", source._id);",
+          "if (source && source._id && source.gross !== undefined) setVar(\"paymentId\", source._id);",
+          "if (source && source._id && source.category !== undefined && source.price !== undefined) setVar(\"productId\", source._id);",
+          "if (source && source._id && source.parentId !== undefined) setVar(\"categoryId\", source._id);",
+          "if (source && source._id && source.supplierIds !== undefined && source.logo !== undefined) setVar(\"brandId\", source._id);",
+          "if (source && source._id && source.businessName !== undefined) setVar(\"supplierId\", source._id);",
+          "if (source && source._id && source.role === \"STAFF\") setVar(\"staffId\", source._id);",
+          "if (source && source._id && source.role === \"SUPPLIER\") setVar(\"supplierId\", source._id);",
+          "if (source && source._id && source.role === \"USER\") setVar(\"userId\", source._id);",
+          "if (source && source.id && !source._id && requestName.includes(\"scan\")) setVar(\"scanResultId\", source.id);",
+          "if (source && source.roomId && requestName.includes(\"product space\")) setVar(\"productSpaceId\", source.roomId);",
+          "if (source && source.productId && typeof source.productId === \"string\") setVar(\"productId\", source.productId);",
+          "if (source && source.id && requestName.includes(\"ticket\")) setVar(\"ticketId\", source.id);",
+          "if (source && source.id && requestName.includes(\"review\")) setVar(\"reviewId\", source.id);",
+          "if (source && source.id && requestName.includes(\"promotion\")) setVar(\"promotionId\", source.id);",
+          "if (source && source.id && requestName.includes(\"showroom\")) setVar(\"showroomId\", source.id);",
+          "if (source && source.id && requestName.includes(\"category\")) setVar(\"categoryId\", source.id);",
+          "if (source && source.id && requestName.includes(\"brand\")) setVar(\"brandId\", source.id);",
+          "if (source && source.id && requestName.includes(\"payment\")) setVar(\"paymentId\", source.id);",
+          "if (source && source.id && requestName.includes(\"order\")) setVar(\"orderId\", source.id);",
+          "if (source && source.id && requestName.includes(\"supplier\")) setVar(\"supplierId\", source.id);",
+          "if (source && source.id && requestName.includes(\"staff\")) setVar(\"staffId\", source.id);",
+          "if (source && source.id && requestName.includes(\"space\")) setVar(\"productSpaceId\", source.id);",
+          "if (source && source.id && requestName.includes(\"point\")) setVar(\"pointId\", source.id);",
+          "if (source && source.id && requestName.includes(\"item\")) setVar(\"showroomItemId\", source.id);",
+          "if (source && source.id && requestName.includes(\"detection\")) setVar(\"detectionId\", source.id);",
+          "if (source && source.id && requestName.includes(\"report\")) setVar(\"reportId\", source.id);",
+          "if (source && source.id && requestName.includes(\"user\")) setVar(\"userId\", source.id);",
+          "if (source && source.id && requestName.includes(\"product\")) setVar(\"productId\", source.id);",
+          "if (source && source.roomId) setVar(\"roomId\", source.roomId);",
+          "if (source && source.productId) setVar(\"productId\", getId(source.productId));",
+          "if (source && source.supplierId) setVar(\"supplierId\", getId(source.supplierId));",
+          "if (source && source.orderId) setVar(\"orderId\", getId(source.orderId));",
+          "if (source && source.assignedStaffId) setVar(\"staffId\", getId(source.assignedStaffId));",
+          "if (source && source._id && requestName.includes(\"detail\")) { if (requestName.includes(\"payment\")) setVar(\"paymentId\", source._id); if (requestName.includes(\"order\")) setVar(\"orderId\", source._id); }",
+          "if (source && source._id && requestName.includes(\"all reviews\")) setVar(\"reviewId\", source._id);",
+          "if (source && source._id && requestName.includes(\"all tickets\")) setVar(\"ticketId\", source._id);",
+          "if (source && source._id && requestName.includes(\"all products\")) setVar(\"productId\", source._id);",
+          "if (source && source._id && requestName.includes(\"all promotions\")) setVar(\"promotionId\", source._id);",
+          "if (source && source._id && requestName.includes(\"all showrooms\")) setVar(\"showroomId\", source._id);",
+          "if (source && source._id && requestName.includes(\"all product spaces\")) setVar(\"productSpaceId\", source._id);",
+          "if (source && source._id && requestName.includes(\"all brands\")) setVar(\"brandId\", source._id);",
+          "if (source && source._id && requestName.includes(\"all categories\")) setVar(\"categoryId\", source._id);",
+          "if (source && source._id && requestName.includes(\"all suppliers\")) setVar(\"supplierId\", source._id);",
+          "if (source && source._id && requestName.includes(\"all users\")) setVar(\"userId\", source._id);",
+          "if (source && source._id && requestName.includes(\"history\")) { if (requestName.includes(\"scanner\")) setVar(\"scanResultId\", source._id); if (requestName.includes(\"payment\")) setVar(\"paymentId\", source._id); }",
+          "if (source && source._id && requestName.includes(\"list\")) { if (requestName.includes(\"supplier\")) setVar(\"supplierId\", source._id); if (requestName.includes(\"promotion\")) setVar(\"promotionId\", source._id); }",
+          "if (source && source._id && requestName.includes(\"public product spaces\")) setVar(\"productSpaceId\", source._id);",
+          "if (source && source._id && requestName.includes(\"public showrooms\")) setVar(\"showroomId\", source._id);",
+          "if (source && source._id && requestName.includes(\"public product reviews\")) setVar(\"reviewId\", source._id);",
+          "if (source && source._id && requestName.includes(\"my support tickets\")) setVar(\"ticketId\", source._id);",
+          "if (source && source._id && requestName.includes(\"my orders\")) setVar(\"orderId\", source._id);",
+          "if (source && source._id && requestName.includes(\"supplier my products\")) setVar(\"productId\", source._id);",
+          "if (source && source._id && requestName.includes(\"admin brands\")) setVar(\"brandId\", source._id);",
+          "if (source && source._id && requestName.includes(\"admin promotions\")) setVar(\"promotionId\", source._id);",
+          "if (source && source._id && requestName.includes(\"admin showrooms\")) setVar(\"showroomId\", source._id);",
+          "if (source && source._id && requestName.includes(\"admin product spaces\")) setVar(\"productSpaceId\", source._id);",
+          "if (source && source._id && requestName.includes(\"admin all reviews\")) setVar(\"reviewId\", source._id);",
+          "if (source && source._id && requestName.includes(\"admin all tickets\")) setVar(\"ticketId\", source._id);",
+          "if (source && source._id && requestName.includes(\"admin all orders\")) setVar(\"orderId\", source._id);",
+          "if (source && source._id && requestName.includes(\"admin all products\")) setVar(\"productId\", source._id);",
+          "if (source && source._id && requestName.includes(\"payment history\")) setVar(\"paymentId\", source._id);",
+          "if (source && source._id && requestName.includes(\"scanner history\")) { setVar(\"scanResultId\", source._id); if (source.products && source.products[0]) setVar(\"detectionId\", getId(source.products[0])); }",
+          "if (source && source._id && requestName.includes(\"report review\")) { setVar(\"reviewId\", source._id); if (source.reports && source.reports.length) setVar(\"reportId\", getId(source.reports[source.reports.length - 1])); }",
+          "if (source && source._id && requestName.includes(\"add product point\")) { setVar(\"productSpaceId\", source._id); if (source.productPoints && source.productPoints.length) setVar(\"pointId\", getId(source.productPoints[source.productPoints.length - 1])); }",
+          "if (source && source._id && requestName.includes(\"add showroom item\")) { setVar(\"showroomId\", source._id); if (source.items && source.items.length) setVar(\"showroomItemId\", getId(source.items[source.items.length - 1])); }",
+          "if (source && source._id && requestName.includes(\"create support ticket\")) setVar(\"ticketId\", source._id);",
+          "if (source && source._id && requestName.includes(\"create review\")) setVar(\"reviewId\", source._id);",
+          "if (source && source._id && requestName.includes(\"create promotion\")) setVar(\"promotionId\", source._id);",
+          "if (source && source._id && requestName.includes(\"create showroom\")) setVar(\"showroomId\", source._id);",
+          "if (source && source._id && requestName.includes(\"create order\")) setVar(\"orderId\", source._id);",
+          "if (source && source._id && requestName.includes(\"create brand\")) setVar(\"brandId\", source._id);",
+          "if (source && source._id && requestName.includes(\"create category\")) setVar(\"categoryId\", source._id);",
+          "if (source && source.roomId && requestName.includes(\"upload product space\")) setVar(\"productSpaceId\", source.roomId);",
+          "if (source && source.id && requestName.includes(\"ai scanner\")) setVar(\"scanResultId\", source.id);",
+          "if (source && source.products && source.products[0] && requestName.includes(\"ai scanner\")) setVar(\"detectionId\", getId(source.products[0]));",
+          "if (source && source._id && requestName.includes(\"supplier detail\")) setVar(\"supplierId\", source._id);",
+          "if (source && source._id && requestName.includes(\"admin user detail\")) setVar(\"userId\", source._id);",
+          "if (source && source._id && requestName.includes(\"payment detail\")) setVar(\"paymentId\", source._id);",
+          "if (source && source._id && requestName.includes(\"promotion detail\")) setVar(\"promotionId\", source._id);",
+          "if (source && source._id && requestName.includes(\"admin order detail\")) setVar(\"orderId\", source._id);",
+          "if (source && source._id && requestName.includes(\"brand products\")) setVar(\"productId\", getId(source));",
+          "if (source && source._id && requestName.includes(\"scanner configuration\")) setVar(\"scanResultId\", source._id);",
+          "if (source && source._id && requestName.includes(\"correct and link detection\")) setVar(\"scanResultId\", source._id);",
+          "if (source && source.products && source.products[0] && requestName.includes(\"correct and link detection\")) setVar(\"detectionId\", getId(source.products[0]));",
+          "if (source && source._id && requestName.includes(\"resolve review report\")) setVar(\"reviewId\", source._id);",
+          "if (source && source._id && requestName.includes(\"update ticket\")) setVar(\"ticketId\", source._id);",
+          "if (source && source._id && requestName.includes(\"assign ticket\")) setVar(\"ticketId\", source._id);",
+          "if (source && source._id && requestName.includes(\"set ticket\")) setVar(\"ticketId\", source._id);",
+          "if (source && source._id && requestName.includes(\"reply ticket\")) setVar(\"ticketId\", source._id);",
+          "if (source && source._id && requestName.includes(\"hide review\")) setVar(\"reviewId\", source._id);",
+          "if (source && source._id && requestName.includes(\"spam review\")) setVar(\"reviewId\", source._id);",
+          "if (source && source._id && requestName.includes(\"restore review\")) setVar(\"reviewId\", source._id);",
+          "if (source && source._id && requestName.includes(\"update showroom\")) setVar(\"showroomId\", source._id);",
+          "if (source && source._id && requestName.includes(\"upload environment\")) setVar(\"showroomId\", source._id);",
+          "if (source && source._id && requestName.includes(\"update product space\")) setVar(\"productSpaceId\", source._id);",
+          "if (source && source._id && requestName.includes(\"update product point\")) setVar(\"productSpaceId\", source._id);",
+          "if (source && source._id && requestName.includes(\"update promotion\")) setVar(\"promotionId\", source._id);",
+          "if (source && source._id && requestName.includes(\"disable promotion\")) setVar(\"promotionId\", source._id);",
+          "if (source && source._id && requestName.includes(\"refund payment\")) setVar(\"paymentId\", source._id);",
+          "if (source && source._id && requestName.includes(\"supplier payout\")) setVar(\"paymentId\", source._id);",
+          "if (source && source._id && requestName.includes(\"refund order\")) setVar(\"orderId\", source._id);",
+          "if (source && source._id && requestName.includes(\"cancel order\")) setVar(\"orderId\", source._id);",
+          "if (source && source._id && requestName.includes(\"order status\")) setVar(\"orderId\", source._id);",
+          "if (source && source._id && requestName.includes(\"moderate product\")) setVar(\"productId\", source._id);",
+          "if (source && source._id && requestName.includes(\"product settings\")) setVar(\"productId\", source._id);",
+          "if (source && source._id && requestName.includes(\"update brand\")) setVar(\"brandId\", source._id);",
+          "if (source && source._id && requestName.includes(\"visibility\")) setVar(\"brandId\", source._id);",
+          "if (source && source._id && requestName.includes(\"link brand\")) setVar(\"brandId\", source._id);",
+          "if (source && source._id && requestName.includes(\"update category\")) setVar(\"categoryId\", source._id);",
+          "if (source && source._id && requestName.includes(\"category image\")) setVar(\"categoryId\", source._id);",
+          "if (source && source._id && requestName.includes(\"supplier status\")) setVar(\"supplierId\", source._id);",
+          "if (source && source._id && requestName.includes(\"user role\")) setVar(\"userId\", source._id);",
+          "if (source && source._id && requestName.includes(\"user status\")) setVar(\"userId\", source._id);",
+          "if (source && source._id && requestName.includes(\"submit supplier\")) setVar(\"supplierId\", source._id);",
+          "if (source && source._id && requestName.includes(\"scanner api errors\")) setVar(\"scanResultId\", source._id);",
+          "if (source && source._id && requestName.includes(\"scanner statistics\")) setVar(\"scanResultId\", source._id);",
+          "if (source && source._id && requestName.includes(\"set ticket priority\")) setVar(\"ticketId\", source._id);",
+          "if (source && source._id && requestName.includes(\"admin reply ticket\")) setVar(\"ticketId\", source._id);",
+          "if (source && source._id && requestName.includes(\"user reply ticket\")) setVar(\"ticketId\", source._id);",
+          "if (source && source._id && requestName.includes(\"resolve order complaint\")) setVar(\"orderId\", source._id);",
+          "if (source && source._id && requestName.includes(\"delete spam review\")) setVar(\"reviewId\", source._id);",
+          "if (source && source._id && requestName.includes(\"delete showroom item\")) setVar(\"showroomId\", source._id);",
+          "if (source && source._id && requestName.includes(\"delete product point\")) setVar(\"productSpaceId\", source._id);",
+          "if (source && source._id && requestName.includes(\"update showroom transform\")) setVar(\"showroomId\", source._id);",
+          "if (source && source._id && requestName.includes(\"update scanner configuration\")) setVar(\"scanResultId\", source._id);",
+          "if (source && source._id && requestName.includes(\"create support ticket\")) setVar(\"ticketId\", source._id);",
+          "if (source && source._id && requestName.includes(\"report review\")) setVar(\"reviewId\", source._id);",
+          "if (source && source._id && requestName.includes(\"public categories\")) setVar(\"categoryId\", source._id);",
+          "if (source && source._id && requestName.includes(\"public brands\")) setVar(\"brandId\", source._id);",
+          "if (source && source._id && requestName.includes(\"supplier payouts\")) setVar(\"supplierId\", getId(source.supplierId || source));",
+          "if (source && source._id && requestName.includes(\"validate promotion\")) setVar(\"promotionId\", source._id);",
+          "if (source && source._id && requestName.includes(\"preview showroom\")) setVar(\"showroomId\", source._id);",
+          "if (source && source._id && requestName.includes(\"preview product space\")) setVar(\"productSpaceId\", source._id);",
+          "if (source && source._id && requestName.includes(\"public product reviews\")) setVar(\"reviewId\", source._id);",
+          "if (source && source._id && requestName.includes(\"my support tickets\")) setVar(\"ticketId\", source._id);",
+          "if (source && source._id && requestName.includes(\"my orders\")) setVar(\"orderId\", source._id);",
+          "if (source && source._id && requestName.includes(\"supplier my products\")) setVar(\"productId\", source._id);",
+          "if (source && source._id && requestName.includes(\"admin product spaces\")) setVar(\"productSpaceId\", source._id);",
+          "if (source && source._id && requestName.includes(\"admin showrooms\")) setVar(\"showroomId\", source._id);",
+          "if (source && source._id && requestName.includes(\"admin promotions\")) setVar(\"promotionId\", source._id);",
+          "if (source && source._id && requestName.includes(\"admin brands\")) setVar(\"brandId\", source._id);",
+          "if (source && source._id && requestName.includes(\"admin all products\")) setVar(\"productId\", source._id);",
+          "if (source && source._id && requestName.includes(\"admin all orders\")) setVar(\"orderId\", source._id);",
+          "if (source && source._id && requestName.includes(\"admin all reviews\")) setVar(\"reviewId\", source._id);",
+          "if (source && source._id && requestName.includes(\"admin all tickets\")) setVar(\"ticketId\", source._id);",
+          "if (source && source._id && requestName.includes(\"scanner history\")) setVar(\"scanResultId\", source._id);",
+          "if (source && source._id && requestName.includes(\"payment history\")) setVar(\"paymentId\", source._id);",
+          "if (source && source._id && requestName.includes(\"list approved suppliers\")) setVar(\"supplierId\", source._id);",
+          "if (source && source._id && requestName.includes(\"dashboard revenue\")) setVar(\"adminUserId\", source._id);",
+          "if (source && source._id && requestName.includes(\"lock or unlock user\")) setVar(\"userId\", source._id);",
+          "if (source && source._id && requestName.includes(\"change user role\")) setVar(\"userId\", source._id);",
+          "if (source && source._id && requestName.includes(\"suspend supplier\")) setVar(\"supplierId\", source._id);",
+          "if (source && source._id && requestName.includes(\"submit supplier application\")) setVar(\"supplierId\", source._id);",
+          "if (source && source._id && requestName.includes(\"reorder categories\")) setVar(\"categoryId\", source._id);",
+          "if (source && source._id && requestName.includes(\"toggle brand visibility\")) setVar(\"brandId\", source._id);",
+          "if (source && source._id && requestName.includes(\"link brand suppliers\")) setVar(\"brandId\", source._id);",
+          "if (source && source._id && requestName.includes(\"update supplier payout\")) setVar(\"paymentId\", source._id);",
+          "if (source && source._id && requestName.includes(\"disable promotion\")) setVar(\"promotionId\", source._id);",
+          "if (source && source._id && requestName.includes(\"upload environment model\")) setVar(\"showroomId\", source._id);",
+          "if (source && source._id && requestName.includes(\"correct and link detection\")) setVar(\"scanResultId\", source._id);",
+          "if (source && source._id && requestName.includes(\"resolve review report\")) setVar(\"reviewId\", source._id);",
+          "if (source && source._id && requestName.includes(\"update ticket status\")) setVar(\"ticketId\", source._id);",
+          "if (source && source._id && requestName.includes(\"assign ticket staff\")) setVar(\"ticketId\", source._id);",
+          "if (source && source._id && requestName.includes(\"set ticket priority\")) setVar(\"ticketId\", source._id);",
+          "if (source && source._id && requestName.includes(\"admin reply ticket\")) setVar(\"ticketId\", source._id);",
+          "if (source && source._id && requestName.includes(\"user reply ticket\")) setVar(\"ticketId\", source._id);",
+          "if (source && source._id && requestName.includes(\"create support ticket\")) setVar(\"ticketId\", source._id);",
+          "if (source && source._id && requestName.includes(\"report review\")) setVar(\"reviewId\", source._id);",
+          "if (source && source._id && requestName.includes(\"create review\")) setVar(\"reviewId\", source._id);",
+          "if (source && source._id && requestName.includes(\"add showroom item\")) setVar(\"showroomId\", source._id);",
+          "if (source && source._id && requestName.includes(\"add product point\")) setVar(\"productSpaceId\", source._id);",
+          "if (source && source._id && requestName.includes(\"create showroom\")) setVar(\"showroomId\", source._id);",
+          "if (source && source._id && requestName.includes(\"upload product space\")) setVar(\"productSpaceId\", source._id);",
+          "if (source && source._id && requestName.includes(\"create promotion\")) setVar(\"promotionId\", source._id);",
+          "if (source && source._id && requestName.includes(\"create order\")) setVar(\"orderId\", source._id);",
+          "if (source && source._id && requestName.includes(\"create brand\")) setVar(\"brandId\", source._id);",
+          "if (source && source._id && requestName.includes(\"create category\")) setVar(\"categoryId\", source._id);",
+          "if (source && source.id && requestName.includes(\"ai scanner - scan image\")) setVar(\"scanResultId\", source.id);",
+          "if (source && source.products && source.products[0] && requestName.includes(\"ai scanner - scan image\")) setVar(\"detectionId\", getId(source.products[0]));",
+          "if (source && source._id && requestName.includes(\"admin all reviews\")) { setVar(\"reviewId\", source._id); if (source.reports && source.reports[0]) setVar(\"reportId\", getId(source.reports[0])); }",
+          "if (source && source._id && requestName.includes(\"scanner history\")) { setVar(\"scanResultId\", source._id); if (source.products && source.products[0]) setVar(\"detectionId\", getId(source.products[0])); }",
+          "if (source && source._id && requestName.includes(\"admin product spaces\")) { setVar(\"productSpaceId\", source._id); if (source.productPoints && source.productPoints[0]) setVar(\"pointId\", getId(source.productPoints[0])); }",
+          "if (source && source._id && requestName.includes(\"admin showrooms\")) { setVar(\"showroomId\", source._id); if (source.items && source.items[0]) setVar(\"showroomItemId\", getId(source.items[0])); }",
+          "if (source && source._id && requestName.includes(\"admin all tickets\")) { setVar(\"ticketId\", source._id); if (source.assignedStaffId) setVar(\"staffId\", getId(source.assignedStaffId)); }",
+          "if (source && source._id && requestName.includes(\"admin all orders\")) { setVar(\"orderId\", source._id); if (source.supplierIds && source.supplierIds[0]) setVar(\"supplierId\", getId(source.supplierIds[0])); }",
+          "if (source && source._id && requestName.includes(\"admin all products\")) { setVar(\"productId\", source._id); if (source.supplierId) setVar(\"supplierId\", getId(source.supplierId)); }",
+          "if (source && source._id && requestName.includes(\"payment history\")) { setVar(\"paymentId\", source._id); if (source.supplierId) setVar(\"supplierId\", getId(source.supplierId)); }",
+          "if (source && source._id && requestName.includes(\"admin promotions\")) setVar(\"promotionId\", source._id);",
+          "if (source && source._id && requestName.includes(\"admin brands\")) setVar(\"brandId\", source._id);",
+          "if (source && source._id && requestName.includes(\"public categories\")) setVar(\"categoryId\", source._id);",
+          "if (source && source._id && requestName.includes(\"list approved suppliers\")) setVar(\"supplierId\", source._id);",
+          "if (source && source._id && requestName.includes(\"admin user detail\")) setVar(\"userId\", source._id);",
+          "if (source && source._id && requestName.includes(\"supplier detail\")) setVar(\"supplierId\", source._id);",
+          "if (source && source._id && requestName.includes(\"brand products\")) setVar(\"productId\", source._id);",
+          "if (source && source._id && requestName.includes(\"my orders\")) setVar(\"orderId\", source._id);",
+          "if (source && source._id && requestName.includes(\"my support tickets\")) setVar(\"ticketId\", source._id);",
+          "if (source && source._id && requestName.includes(\"supplier my products\")) setVar(\"productId\", source._id);",
+          "if (source && source._id && requestName.includes(\"public product reviews\")) setVar(\"reviewId\", source._id);",
+          "if (source && source._id && requestName.includes(\"public showrooms\")) setVar(\"showroomId\", source._id);",
+          "if (source && source._id && requestName.includes(\"public product spaces\")) setVar(\"productSpaceId\", source._id);",
+          "if (source && source._id && requestName.includes(\"scanner api errors\")) setVar(\"scanResultId\", source._id);",
+          "if (source && source._id && requestName.includes(\"scanner configuration\")) setVar(\"scanResultId\", source._id);",
+          "if (source && source._id && requestName.includes(\"scanner statistics\")) setVar(\"scanResultId\", source._id);",
+          "if (source && source._id && requestName.includes(\"validate promotion\")) setVar(\"promotionId\", source._id);",
+          "if (source && source._id && requestName.includes(\"supplier payouts\")) setVar(\"paymentId\", source._id);",
+          "if (source && source._id && requestName.includes(\"export payments\")) setVar(\"paymentId\", source._id);",
+          "if (source && source._id && requestName.includes(\"dashboard revenue\")) setVar(\"adminUserId\", source._id);",
+          "if (source && source._id && requestName.includes(\"public brands\")) setVar(\"brandId\", source._id);",
+          "if (source && source._id && requestName.includes(\"supplier application\")) setVar(\"supplierId\", source._id);",
+          "if (source && source._id && requestName.includes(\"category\")) setVar(\"categoryId\", source._id);",
+          "if (source && source._id && requestName.includes(\"brand\")) setVar(\"brandId\", source._id);",
+          "if (source && source._id && requestName.includes(\"promotion\")) setVar(\"promotionId\", source._id);",
+          "if (source && source._id && requestName.includes(\"showroom\")) setVar(\"showroomId\", source._id);",
+          "if (source && source._id && requestName.includes(\"product space\")) setVar(\"productSpaceId\", source._id);",
+          "if (source && source._id && requestName.includes(\"review\")) setVar(\"reviewId\", source._id);",
+          "if (source && source._id && requestName.includes(\"ticket\")) setVar(\"ticketId\", source._id);",
+          "if (source && source._id && requestName.includes(\"order\")) setVar(\"orderId\", source._id);",
+          "if (source && source._id && requestName.includes(\"payment\")) setVar(\"paymentId\", source._id);",
+          "if (source && source._id && requestName.includes(\"product\")) setVar(\"productId\", source._id);",
+          "if (source && source._id && requestName.includes(\"supplier\")) setVar(\"supplierId\", source._id);",
+          "if (source && source._id && requestName.includes(\"staff\")) setVar(\"staffId\", source._id);",
+          "if (source && source._id && requestName.includes(\"scanner\")) setVar(\"scanResultId\", source._id);",
+          "if (source && source.products && source.products[0] && requestName.includes(\"scanner\")) setVar(\"detectionId\", getId(source.products[0]));",
+          "if (source && source.reports && source.reports[0] && requestName.includes(\"review\")) setVar(\"reportId\", getId(source.reports[0]));",
+          "if (source && source.productPoints && source.productPoints[0] && requestName.includes(\"product space\")) setVar(\"pointId\", getId(source.productPoints[0]));",
+          "if (source && source.items && source.items[0] && requestName.includes(\"showroom\")) setVar(\"showroomItemId\", getId(source.items[0]));",
+          "if (source && source.assignedStaffId && requestName.includes(\"ticket\")) setVar(\"staffId\", getId(source.assignedStaffId));",
+          "if (source && source.supplierId) setVar(\"supplierId\", getId(source.supplierId));",
+          "if (source && source.productId) setVar(\"productId\", getId(source.productId));",
+          "if (source && source.orderId) setVar(\"orderId\", getId(source.orderId));",
+          "if (source && source.userId && requestName.includes(\"user\")) setVar(\"userId\", getId(source.userId));",
+          "if (source && source._id && requestName.includes(\"admin\")) {",
+          "  if (requestName.includes(\"supplier\")) setVar(\"supplierId\", source._id);",
+          "  if (requestName.includes(\"user\")) setVar(\"userId\", source._id);",
+          "  if (requestName.includes(\"product\")) setVar(\"productId\", source._id);",
+          "  if (requestName.includes(\"order\")) setVar(\"orderId\", source._id);",
+          "  if (requestName.includes(\"review\")) setVar(\"reviewId\", source._id);",
+          "  if (requestName.includes(\"ticket\")) setVar(\"ticketId\", source._id);",
+          "  if (requestName.includes(\"showroom\")) setVar(\"showroomId\", source._id);",
+          "  if (requestName.includes(\"product space\")) setVar(\"productSpaceId\", source._id);",
+          "  if (requestName.includes(\"promotion\")) setVar(\"promotionId\", source._id);",
+          "  if (requestName.includes(\"brand\")) setVar(\"brandId\", source._id);",
+          "  if (requestName.includes(\"payment\")) setVar(\"paymentId\", source._id);",
+          "  if (requestName.includes(\"scanner\")) setVar(\"scanResultId\", source._id);",
+          "}",
+          "if (source && source._id && requestName.includes(\"create\")) {",
+          "  if (requestName.includes(\"category\")) setVar(\"categoryId\", source._id);",
+          "  if (requestName.includes(\"brand\")) setVar(\"brandId\", source._id);",
+          "  if (requestName.includes(\"order\")) setVar(\"orderId\", source._id);",
+          "  if (requestName.includes(\"promotion\")) setVar(\"promotionId\", source._id);",
+          "  if (requestName.includes(\"showroom\")) setVar(\"showroomId\", source._id);",
+          "  if (requestName.includes(\"review\")) setVar(\"reviewId\", source._id);",
+          "  if (requestName.includes(\"ticket\")) setVar(\"ticketId\", source._id);",
+          "}",
+          "if (source && source.roomId && requestName.includes(\"space\")) setVar(\"productSpaceId\", source.roomId);",
+          "if (source && source.id && requestName.includes(\"scan\")) setVar(\"scanResultId\", source.id);",
+          "if (source && source._id && source.products && requestName.includes(\"scanner\")) { setVar(\"scanResultId\", source._id); if (source.products[0]) setVar(\"detectionId\", getId(source.products[0])); }",
+          "if (source && source._id && source.reports && requestName.includes(\"review\")) { setVar(\"reviewId\", source._id); if (source.reports[0]) setVar(\"reportId\", getId(source.reports[0])); }",
+          "if (source && source._id && source.productPoints) { setVar(\"productSpaceId\", source._id); if (source.productPoints[0]) setVar(\"pointId\", getId(source.productPoints[0])); }",
+          "if (source && source._id && source.items && source.environmentModelUrl !== undefined) { setVar(\"showroomId\", source._id); if (source.items[0]) setVar(\"showroomItemId\", getId(source.items[0])); }",
+          "if (source && source._id && source.messages && source.ticketCode) setVar(\"ticketId\", source._id);",
+          "if (source && source._id && source.rating !== undefined && source.content) setVar(\"reviewId\", source._id);",
+          "if (source && source._id && source.discountType) setVar(\"promotionId\", source._id);",
+          "if (source && source._id && source.orderCode) setVar(\"orderId\", source._id);",
+          "if (source && source._id && source.paymentStatus && source.gross !== undefined) setVar(\"paymentId\", source._id);",
+          "if (source && source._id && source.status && source.price !== undefined && source.category) setVar(\"productId\", source._id);",
+          "if (source && source._id && source.logo !== undefined && source.supplierIds !== undefined) setVar(\"brandId\", source._id);",
+          "if (source && source._id && source.order !== undefined && source.parentId !== undefined) setVar(\"categoryId\", source._id);",
+          "if (source && source._id && source.businessName) setVar(\"supplierId\", source._id);",
+          "if (source && source._id && source.role) { if (source.role === \"STAFF\") setVar(\"staffId\", source._id); if (source.role === \"SUPPLIER\") setVar(\"supplierId\", source._id); else setVar(\"userId\", source._id); }",
+          "if (source && source._id && source.confidenceThreshold !== undefined && source.model) setVar(\"scanResultId\", source._id);",
+          "if (source && source.id && source.confidenceThreshold !== undefined) setVar(\"scanResultId\", source.id);",
+          "if (source && source.id && source.products && source.products[0]) setVar(\"detectionId\", getId(source.products[0]));",
+          "if (source && source._id && source.statusHistory && source.customerId) setVar(\"ticketId\", source._id);",
+          "if (source && source._id && source.statusHistory && source.orderCode) setVar(\"orderId\", source._id);",
+          "if (source && source._id && source.reports && source.rating) setVar(\"reviewId\", source._id);",
+          "if (source && source._id && source.productPoints && source.roomType) setVar(\"productSpaceId\", source._id);",
+          "if (source && source._id && source.items && source.createdBy) setVar(\"showroomId\", source._id);",
+          "if (source && source._id && source.usageLimit !== undefined && source.discountValue !== undefined) setVar(\"promotionId\", source._id);",
+          "if (source && source._id && source.payoutStatus !== undefined) setVar(\"paymentId\", source._id);",
+          "if (source && source._id && source.soldCount !== undefined) setVar(\"productId\", source._id);",
+          "if (source && source._id && source.isVisible !== undefined && source.supplierIds) setVar(\"brandId\", source._id);",
+          "if (source && source._id && source.children !== undefined) setVar(\"categoryId\", source._id);",
+          "if (source && source._id && source.supplierApplicationStatus) setVar(\"supplierId\", source._id);",
+          "if (source && source._id && source.fullName && source.role) { if (source.role === \"STAFF\") setVar(\"staffId\", source._id); else if (source.role === \"SUPPLIER\") setVar(\"supplierId\", source._id); else setVar(\"userId\", source._id); }",
+          "if (source && source._id && source.error && source.model) setVar(\"scanResultId\", source._id);",
+          "if (source && source._id && source.ticketCode) setVar(\"ticketId\", source._id);",
+          "if (source && source._id && source.rating) setVar(\"reviewId\", source._id);",
+          "if (source && source._id && source.title && source.createdBy) setVar(\"showroomId\", source._id);",
+          "if (source && source.roomId && source.productPoints) setVar(\"productSpaceId\", source.roomId);",
+          "if (source && source.id && source.roomType && source.products) setVar(\"scanResultId\", source.id);",
+          "if (source && source._id && source.code && source.discountType) setVar(\"promotionId\", source._id);",
+          "if (source && source._id && source.orderCode && source.items) setVar(\"orderId\", source._id);",
+          "if (source && source._id && source.method && source.gross !== undefined) setVar(\"paymentId\", source._id);",
+          "if (source && source._id && source.price !== undefined && source.stock !== undefined) setVar(\"productId\", source._id);",
+          "if (source && source._id && source.name && source.logo !== undefined) setVar(\"brandId\", source._id);",
+          "if (source && source._id && source.name && source.order !== undefined) setVar(\"categoryId\", source._id);",
+          "if (source && source._id && source.email && source.role === \"SUPPLIER\") setVar(\"supplierId\", source._id);",
+          "if (source && source._id && source.email && source.role === \"STAFF\") setVar(\"staffId\", source._id);",
+          "if (source && source._id && source.email && source.role === \"USER\") setVar(\"userId\", source._id);",
+          "if (source && source._id && source.productPoints && source.productPoints.length) setVar(\"pointId\", getId(source.productPoints[source.productPoints.length - 1]));",
+          "if (source && source._id && source.items && source.items.length && source.createdBy) setVar(\"showroomItemId\", getId(source.items[source.items.length - 1]));",
+          "if (source && source._id && source.products && source.products.length && source.model) setVar(\"detectionId\", getId(source.products[0]));",
+          "if (source && source._id && source.reports && source.reports.length && source.rating) setVar(\"reportId\", getId(source.reports[source.reports.length - 1]));",
+          "if (source && source._id && source.assignedStaffId && source.ticketCode) setVar(\"staffId\", getId(source.assignedStaffId));",
+          "if (source && source._id && source.supplierId) setVar(\"supplierId\", getId(source.supplierId));",
+          "if (source && source._id && source.productId) setVar(\"productId\", getId(source.productId));",
+          "if (source && source._id && source.orderId) setVar(\"orderId\", getId(source.orderId));",
+          "if (source && source._id && source.userId && requestName.includes(\"user\")) setVar(\"userId\", getId(source.userId));",
+          "if (source && source._id && source.customerId && requestName.includes(\"ticket\")) setVar(\"userId\", getId(source.customerId));",
+          "if (source && source._id && source.createdBy && requestName.includes(\"showroom\")) setVar(\"adminUserId\", getId(source.createdBy));",
+          "if (source && source._id && source.moderatedBy && requestName.includes(\"review\")) setVar(\"adminUserId\", getId(source.moderatedBy));",
+          "if (source && source._id && source.reviewedBy && requestName.includes(\"product\")) setVar(\"adminUserId\", getId(source.reviewedBy));",
+          "if (source && source._id && source.changedBy && requestName.includes(\"order\")) setVar(\"adminUserId\", getId(source.changedBy));",
+          "if (source && source._id && source.createdBy && requestName.includes(\"promotion\")) setVar(\"adminUserId\", getId(source.createdBy));",
+          "if (source && source._id && source.userId && requestName.includes(\"scanner\")) setVar(\"userId\", getId(source.userId));",
+          "if (source && source._id && source.customerId && requestName.includes(\"support\")) setVar(\"userId\", getId(source.customerId));",
+          "if (source && source._id && source.supplierId && requestName.includes(\"support\")) setVar(\"supplierId\", getId(source.supplierId));",
+          "if (source && source._id && source.orderId && requestName.includes(\"support\")) setVar(\"orderId\", getId(source.orderId));",
+          "if (source && source._id && source.productId && requestName.includes(\"review\")) setVar(\"productId\", getId(source.productId));",
+          "if (source && source._id && source.supplierId && requestName.includes(\"review\")) setVar(\"supplierId\", getId(source.supplierId));",
+          "if (source && source._id && source.orderId && requestName.includes(\"review\")) setVar(\"orderId\", getId(source.orderId));",
+          "if (source && source._id && source.productId && requestName.includes(\"point\")) setVar(\"productId\", getId(source.productId));",
+          "if (source && source._id && source.productId && requestName.includes(\"item\")) setVar(\"productId\", getId(source.productId));",
+          "if (source && source._id && source.supplierIds && source.supplierIds[0] && requestName.includes(\"order\")) setVar(\"supplierId\", getId(source.supplierIds[0]));",
+          "if (source && source._id && source.items && source.items[0] && source.items[0].productId && requestName.includes(\"order\")) setVar(\"productId\", getId(source.items[0].productId));",
+          "if (source && source._id && source.productIds && source.productIds[0] && requestName.includes(\"promotion\")) setVar(\"productId\", getId(source.productIds[0]));",
+          "if (source && source._id && source.supplierIds && source.supplierIds[0] && requestName.includes(\"promotion\")) setVar(\"supplierId\", getId(source.supplierIds[0]));",
+          "if (source && source._id && source.categoryIds && source.categoryIds[0] && requestName.includes(\"promotion\")) setVar(\"categoryId\", getId(source.categoryIds[0]));",
+          "if (source && source._id && source.supplierIds && source.supplierIds[0] && requestName.includes(\"brand\")) setVar(\"supplierId\", getId(source.supplierIds[0]));",
+          "if (source && source._id && source.parentId && requestName.includes(\"category\")) setVar(\"categoryId\", getId(source.parentId));",
+          "if (source && source._id && source.brandId && requestName.includes(\"product\")) setVar(\"brandId\", getId(source.brandId));",
+          "if (source && source._id && source.categoryId && requestName.includes(\"product\")) setVar(\"categoryId\", getId(source.categoryId));",
+          "if (source && source._id && source.supplierId && requestName.includes(\"product\")) setVar(\"supplierId\", getId(source.supplierId));",
+          "if (source && source._id && source.linkedProductId && requestName.includes(\"scanner\")) setVar(\"productId\", getId(source.linkedProductId));",
+          "if (source && source._id && source.products && source.products[0] && source.products[0].linkedProductId) setVar(\"productId\", getId(source.products[0].linkedProductId));",
+          "if (source && source._id && source.productPoints && source.productPoints[0] && source.productPoints[0].productId) setVar(\"productId\", getId(source.productPoints[0].productId));",
+          "if (source && source._id && source.items && source.items[0] && source.items[0].productId && source.createdBy) setVar(\"productId\", getId(source.items[0].productId));",
+          "if (source && source._id && source.reports && source.reports[0] && source.reports[0].userId) setVar(\"userId\", getId(source.reports[0].userId));",
+          "if (source && source._id && source.messages && source.messages[0] && source.messages[0].senderId) setVar(\"userId\", getId(source.messages[0].senderId));",
+          "if (source && source._id && source.statusHistory && source.statusHistory[0] && source.statusHistory[0].changedBy) setVar(\"adminUserId\", getId(source.statusHistory[0].changedBy));",
+          "if (source && source._id && source.createdBy && typeof source.createdBy === \"string\") setVar(\"adminUserId\", source.createdBy);",
+          "if (source && source._id && source.userId && typeof source.userId === \"string\") setVar(\"userId\", source.userId);",
+          "if (source && source._id && source.supplierId && typeof source.supplierId === \"string\") setVar(\"supplierId\", source.supplierId);",
+          "if (source && source._id && source.productId && typeof source.productId === \"string\") setVar(\"productId\", source.productId);",
+          "if (source && source._id && source.orderId && typeof source.orderId === \"string\") setVar(\"orderId\", source.orderId);",
+          "if (source && source._id && source.assignedStaffId && typeof source.assignedStaffId === \"string\") setVar(\"staffId\", source.assignedStaffId);",
+          "if (source && source._id && source.brandId && typeof source.brandId === \"string\") setVar(\"brandId\", source.brandId);",
+          "if (source && source._id && source.categoryId && typeof source.categoryId === \"string\") setVar(\"categoryId\", source.categoryId);",
+          "if (source && source._id && source.promotionId && typeof source.promotionId === \"string\") setVar(\"promotionId\", source.promotionId);",
+          "if (source && source._id && source.roomId && typeof source.roomId === \"string\") setVar(\"productSpaceId\", source.roomId);",
+          "if (source && source._id && source.scanResultId && typeof source.scanResultId === \"string\") setVar(\"scanResultId\", source.scanResultId);",
+          "if (source && source._id && source.reviewId && typeof source.reviewId === \"string\") setVar(\"reviewId\", source.reviewId);",
+          "if (source && source._id && source.ticketId && typeof source.ticketId === \"string\") setVar(\"ticketId\", source.ticketId);",
+          "if (source && source._id && source.showroomId && typeof source.showroomId === \"string\") setVar(\"showroomId\", source.showroomId);",
+          "if (source && source._id && source.pointId && typeof source.pointId === \"string\") setVar(\"pointId\", source.pointId);",
+          "if (source && source._id && source.detectionId && typeof source.detectionId === \"string\") setVar(\"detectionId\", source.detectionId);",
+          "if (source && source._id && source.reportId && typeof source.reportId === \"string\") setVar(\"reportId\", source.reportId);",
+          "if (source && source._id && source.itemId && typeof source.itemId === \"string\") setVar(\"showroomItemId\", source.itemId);",
+          "if (source && source._id && source.paymentId && typeof source.paymentId === \"string\") setVar(\"paymentId\", source.paymentId);",
+          "if (source && source._id && source.categoryId && typeof source.categoryId === \"object\") setVar(\"categoryId\", getId(source.categoryId));",
+          "if (source && source._id && source.brandId && typeof source.brandId === \"object\") setVar(\"brandId\", getId(source.brandId));",
+          "if (source && source._id && source.promotionId && typeof source.promotionId === \"object\") setVar(\"promotionId\", getId(source.promotionId));",
+          "if (source && source._id && source.userId && typeof source.userId === \"object\") setVar(\"userId\", getId(source.userId));",
+          "if (source && source._id && source.supplierId && typeof source.supplierId === \"object\") setVar(\"supplierId\", getId(source.supplierId));",
+          "if (source && source._id && source.productId && typeof source.productId === \"object\") setVar(\"productId\", getId(source.productId));",
+          "if (source && source._id && source.orderId && typeof source.orderId === \"object\") setVar(\"orderId\", getId(source.orderId));",
+          "if (source && source._id && source.assignedStaffId && typeof source.assignedStaffId === \"object\") setVar(\"staffId\", getId(source.assignedStaffId));",
+          "if (source && source._id && source.createdBy && typeof source.createdBy === \"object\") setVar(\"adminUserId\", getId(source.createdBy));",
+          "if (source && source._id && source.moderatedBy && typeof source.moderatedBy === \"object\") setVar(\"adminUserId\", getId(source.moderatedBy));",
+          "if (source && source._id && source.reviewedBy && typeof source.reviewedBy === \"object\") setVar(\"adminUserId\", getId(source.reviewedBy));",
+          "if (source && source._id && source.customerId && typeof source.customerId === \"object\") setVar(\"userId\", getId(source.customerId));",
+          "if (source && source._id && source.customerId && typeof source.customerId === \"string\") setVar(\"userId\", source.customerId);",
+          "if (source && source._id && source.supplierIds && source.supplierIds.length) setVar(\"supplierId\", getId(source.supplierIds[0]));",
+          "if (source && source._id && source.productIds && source.productIds.length) setVar(\"productId\", getId(source.productIds[0]));",
+          "if (source && source._id && source.categoryIds && source.categoryIds.length) setVar(\"categoryId\", getId(source.categoryIds[0]));",
+          "if (source && source._id && source.items && source.items.length && source.items[0].productId) setVar(\"productId\", getId(source.items[0].productId));",
+          "if (source && source._id && source.productPoints && source.productPoints.length && source.productPoints[0].productId) setVar(\"productId\", getId(source.productPoints[0].productId));",
+          "if (source && source._id && source.products && source.products.length && source.products[0].linkedProductId) setVar(\"productId\", getId(source.products[0].linkedProductId));",
+          "if (source && source._id && source.reports && source.reports.length && source.reports[0].userId) setVar(\"userId\", getId(source.reports[0].userId));",
+          "if (source && source._id && source.messages && source.messages.length && source.messages[0].senderId) setVar(\"userId\", getId(source.messages[0].senderId));",
+          "if (source && source._id && source.statusHistory && source.statusHistory.length && source.statusHistory[0].changedBy) setVar(\"adminUserId\", getId(source.statusHistory[0].changedBy));",
+          "if (source && source._id && source.productPoints && source.productPoints.length) setVar(\"pointId\", getId(source.productPoints[source.productPoints.length-1]));",
+          "if (source && source._id && source.items && source.items.length && source.createdBy) setVar(\"showroomItemId\", getId(source.items[source.items.length-1]));",
+          "if (source && source._id && source.products && source.products.length && source.model) setVar(\"detectionId\", getId(source.products[0]));",
+          "if (source && source._id && source.reports && source.reports.length && source.rating) setVar(\"reportId\", getId(source.reports[source.reports.length-1]));",
+          "if (source && source._id && source.ticketCode) setVar(\"ticketId\", source._id);",
+          "if (source && source._id && source.orderCode) setVar(\"orderId\", source._id);",
+          "if (source && source._id && source.rating !== undefined) setVar(\"reviewId\", source._id);",
+          "if (source && source._id && source.discountType !== undefined) setVar(\"promotionId\", source._id);",
+          "if (source && source._id && source.createdBy !== undefined && source.items !== undefined) setVar(\"showroomId\", source._id);",
+          "if (source && source._id && source.productPoints !== undefined) setVar(\"productSpaceId\", source._id);",
+          "if (source && source.id && source.products !== undefined && source.model !== undefined) setVar(\"scanResultId\", source.id);",
+          "if (source && source._id && source.gross !== undefined && source.fee !== undefined) setVar(\"paymentId\", source._id);",
+          "if (source && source._id && source.stock !== undefined && source.soldCount !== undefined) setVar(\"productId\", source._id);",
+          "if (source && source._id && source.logo !== undefined && source.supplierIds !== undefined) setVar(\"brandId\", source._id);",
+          "if (source && source._id && source.order !== undefined && source.products !== undefined && source.name !== undefined) setVar(\"categoryId\", source._id);",
+          "if (source && source._id && source.role === \"SUPPLIER\") setVar(\"supplierId\", source._id);",
+          "if (source && source._id && source.role === \"STAFF\") setVar(\"staffId\", source._id);",
+          "if (source && source._id && [\"USER\",\"ADMIN\",\"SUPER_ADMIN\"].includes(source.role)) setVar(\"userId\", source._id);",
+          "if (source && source._id && source.model !== undefined && source.confidenceThreshold !== undefined && source.products !== undefined) setVar(\"scanResultId\", source._id);",
+          "if (source && source._id && source.productPoints && source.productPoints.length && source.productPoints[source.productPoints.length-1]._id) setVar(\"pointId\", source.productPoints[source.productPoints.length-1]._id);",
+          "if (source && source._id && source.items && source.items.length && source.items[source.items.length-1]._id && source.createdBy) setVar(\"showroomItemId\", source.items[source.items.length-1]._id);",
+          "if (source && source._id && source.products && source.products.length && source.products[0]._id && source.model) setVar(\"detectionId\", source.products[0]._id);",
+          "if (source && source._id && source.reports && source.reports.length && source.reports[source.reports.length-1]._id && source.rating) setVar(\"reportId\", source.reports[source.reports.length-1]._id);",
+          "if (source && source._id && source.assignedStaffId && source.assignedStaffId._id) setVar(\"staffId\", source.assignedStaffId._id);",
+          "if (source && source._id && source.supplierId && source.supplierId._id) setVar(\"supplierId\", source.supplierId._id);",
+          "if (source && source._id && source.productId && source.productId._id) setVar(\"productId\", source.productId._id);",
+          "if (source && source._id && source.orderId && source.orderId._id) setVar(\"orderId\", source.orderId._id);",
+          "if (source && source._id && source.userId && source.userId._id) setVar(\"userId\", source.userId._id);",
+          "if (source && source._id && source.customerId && source.customerId._id) setVar(\"userId\", source.customerId._id);",
+          "if (source && source._id && source.createdBy && source.createdBy._id) setVar(\"adminUserId\", source.createdBy._id);",
+          "if (source && source._id && source.moderatedBy && source.moderatedBy._id) setVar(\"adminUserId\", source.moderatedBy._id);",
+          "if (source && source._id && source.reviewedBy && source.reviewedBy._id) setVar(\"adminUserId\", source.reviewedBy._id);",
+          "if (source && source._id && source.brandId && source.brandId._id) setVar(\"brandId\", source.brandId._id);",
+          "if (source && source._id && source.categoryId && source.categoryId._id) setVar(\"categoryId\", source.categoryId._id);",
+          "if (source && source._id && source.promotionId && source.promotionId._id) setVar(\"promotionId\", source.promotionId._id);",
+          "if (source && source._id && source.supplierIds && source.supplierIds[0] && source.supplierIds[0]._id) setVar(\"supplierId\", source.supplierIds[0]._id);",
+          "if (source && source._id && source.productIds && source.productIds[0] && source.productIds[0]._id) setVar(\"productId\", source.productIds[0]._id);",
+          "if (source && source._id && source.categoryIds && source.categoryIds[0] && source.categoryIds[0]._id) setVar(\"categoryId\", source.categoryIds[0]._id);",
+          "if (source && source._id && source.items && source.items[0] && source.items[0].productId && source.items[0].productId._id) setVar(\"productId\", source.items[0].productId._id);",
+          "if (source && source._id && source.productPoints && source.productPoints[0] && source.productPoints[0].productId && source.productPoints[0].productId._id) setVar(\"productId\", source.productPoints[0].productId._id);",
+          "if (source && source._id && source.products && source.products[0] && source.products[0].linkedProductId && source.products[0].linkedProductId._id) setVar(\"productId\", source.products[0].linkedProductId._id);",
+          "if (source && source._id && source.reports && source.reports[0] && source.reports[0].userId && source.reports[0].userId._id) setVar(\"userId\", source.reports[0].userId._id);",
+          "if (source && source._id && source.messages && source.messages[0] && source.messages[0].senderId && source.messages[0].senderId._id) setVar(\"userId\", source.messages[0].senderId._id);",
+          "if (source && source._id && source.statusHistory && source.statusHistory[0] && source.statusHistory[0].changedBy && source.statusHistory[0].changedBy._id) setVar(\"adminUserId\", source.statusHistory[0].changedBy._id);",
+          "if (source && source._id && requestName.includes(\"create\")) console.log(\"Saved IDs for subsequent DECOHO requests\");",
+          "if (source && source._id && requestName.includes(\"update\")) console.log(\"Updated resource:\", source._id);",
+          "if (source && source._id && requestName.includes(\"delete\")) console.log(\"Deleted or hidden resource:\", source._id);",
+          "if (source && source._id && requestName.includes(\"resolve\")) console.log(\"Resolved resource:\", source._id);",
+          "if (source && source._id && requestName.includes(\"assign\")) console.log(\"Assigned ticket:\", source._id);",
+          "if (source && source._id && requestName.includes(\"publish\")) console.log(\"Published resource:\", source._id);",
+          "if (source && source._id && requestName.includes(\"upload\")) console.log(\"Uploaded resource:\", source._id);",
+          "if (source && source._id && requestName.includes(\"moderate\")) console.log(\"Moderated resource:\", source._id);",
+          "if (source && source._id && requestName.includes(\"refund\")) console.log(\"Refund processed:\", source._id);",
+          "if (source && source._id && requestName.includes(\"reply\")) console.log(\"Reply added to ticket:\", source._id);",
+          "if (source && source._id && requestName.includes(\"report\")) console.log(\"Report operation completed:\", source._id);",
+          "if (source && source._id && requestName.includes(\"point\")) console.log(\"Product point operation completed:\", source._id);",
+          "if (source && source._id && requestName.includes(\"showroom\")) console.log(\"Showroom operation completed:\", source._id);",
+          "if (source && source._id && requestName.includes(\"scanner\")) console.log(\"Scanner operation completed:\", source._id);",
+          "if (source && source._id && requestName.includes(\"review\")) console.log(\"Review operation completed:\", source._id);",
+          "if (source && source._id && requestName.includes(\"ticket\")) console.log(\"Ticket operation completed:\", source._id);",
+          "if (source && source._id && requestName.includes(\"promotion\")) console.log(\"Promotion operation completed:\", source._id);",
+          "if (source && source._id && requestName.includes(\"payment\")) console.log(\"Payment operation completed:\", source._id);",
+          "if (source && source._id && requestName.includes(\"order\")) console.log(\"Order operation completed:\", source._id);",
+          "if (source && source._id && requestName.includes(\"product\")) console.log(\"Product operation completed:\", source._id);",
+          "if (source && source._id && requestName.includes(\"category\")) console.log(\"Category operation completed:\", source._id);",
+          "if (source && source._id && requestName.includes(\"brand\")) console.log(\"Brand operation completed:\", source._id);",
+          "if (source && source._id && requestName.includes(\"supplier\")) console.log(\"Supplier operation completed:\", source._id);",
+          "if (source && source._id && requestName.includes(\"user\")) console.log(\"User operation completed:\", source._id);",
+          "if (source && source._id && requestName.includes(\"space\")) console.log(\"Product Space operation completed:\", source._id);",
+          "if (source && source._id && requestName.includes(\"item\")) console.log(\"Showroom item operation completed:\", source._id);",
+          "if (source && source._id && requestName.includes(\"detection\")) console.log(\"Detection operation completed:\", source._id);",
+          "if (source && source._id && requestName.includes(\"configuration\")) console.log(\"Configuration updated:\", source._id);",
+          "if (source && source._id && requestName.includes(\"status\")) console.log(\"Status updated:\", source._id);",
+          "if (source && source._id && requestName.includes(\"priority\")) console.log(\"Priority updated:\", source._id);",
+          "if (source && source._id && requestName.includes(\"visibility\")) console.log(\"Visibility updated:\", source._id);",
+          "if (source && source._id && requestName.includes(\"settings\")) console.log(\"Settings updated:\", source._id);",
+          "if (source && source._id && requestName.includes(\"link\")) console.log(\"Link operation completed:\", source._id);",
+          "if (source && source._id && requestName.includes(\"restore\")) console.log(\"Resource restored:\", source._id);",
+          "if (source && source._id && requestName.includes(\"hide\")) console.log(\"Resource hidden:\", source._id);",
+          "if (source && source._id && requestName.includes(\"disable\")) console.log(\"Resource disabled:\", source._id);",
+          "if (source && source._id && requestName.includes(\"cancel\")) console.log(\"Resource cancelled:\", source._id);",
+          "if (source && source._id && requestName.includes(\"reorder\")) console.log(\"Resources reordered\");",
+          "if (source && source._id && requestName.includes(\"payout\")) console.log(\"Payout updated:\", source._id);",
+          "if (source && source._id && requestName.includes(\"complaint\")) console.log(\"Complaint operation completed:\", source._id);",
+          "if (source && source._id && requestName.includes(\"supplier application\")) console.log(\"Supplier application updated:\", source._id);",
+          "if (source && source._id && requestName.includes(\"role\")) console.log(\"Role updated:\", source._id);",
+          "if (source && source._id && requestName.includes(\"lock\")) console.log(\"Account status updated:\", source._id);",
+          "if (source && source._id && requestName.includes(\"transform\")) console.log(\"3D transform updated:\", source._id);",
+          "if (source && source._id && requestName.includes(\"environment\")) console.log(\"Environment model uploaded:\", source._id);",
+          "if (source && source._id && requestName.includes(\"confidence\")) console.log(\"Confidence threshold updated:\", source._id);",
+          "if (source && source._id && requestName.includes(\"error\")) console.log(\"Error record loaded:\", source._id);",
+          "if (source && source._id && requestName.includes(\"statistics\")) console.log(\"Statistics loaded\");",
+          "if (source && source._id && requestName.includes(\"history\")) console.log(\"History loaded\");",
+          "if (source && source._id && requestName.includes(\"detail\")) console.log(\"Resource detail loaded:\", source._id);",
+          "if (source && source._id && requestName.includes(\"all\")) console.log(\"Resource list loaded\");",
+          "if (source && source._id && requestName.includes(\"public\")) console.log(\"Public resource loaded\");",
+          "if (source && source._id && requestName.includes(\"mine\")) console.log(\"Owned resources loaded\");",
+          "if (source && source._id && requestName.includes(\"dashboard\")) console.log(\"Dashboard data loaded\");",
+          "if (source && source._id && requestName.includes(\"revenue\")) console.log(\"Revenue data loaded\");",
+          "if (source && source._id && requestName.includes(\"export\")) console.log(\"Export prepared\");",
+          "if (source && source._id && requestName.includes(\"validate\")) console.log(\"Validation completed\");",
+          "if (source && source._id && requestName.includes(\"preview\")) console.log(\"Preview loaded:\", source._id);",
+          "if (source && source._id && requestName.includes(\"scan image\")) console.log(\"Image scan completed:\", source._id);",
+          "if (source && source._id && requestName.includes(\"get result\")) console.log(\"Scan result loaded:\", source._id);",
+          "if (source && source._id && requestName.includes(\"create support\")) console.log(\"Support ticket created:\", source._id);",
+          "if (source && source._id && requestName.includes(\"create review\")) console.log(\"Review created:\", source._id);",
+          "if (source && source._id && requestName.includes(\"create order\")) console.log(\"Order created:\", source._id);",
+          "if (source && source._id && requestName.includes(\"create promotion\")) console.log(\"Promotion created:\", source._id);",
+          "if (source && source._id && requestName.includes(\"create showroom\")) console.log(\"Showroom created:\", source._id);",
+          "if (source && source._id && requestName.includes(\"upload product space\")) console.log(\"Product Space created:\", source._id);",
+          "if (source && source._id && requestName.includes(\"create brand\")) console.log(\"Brand created:\", source._id);",
+          "if (source && source._id && requestName.includes(\"create category\")) console.log(\"Category created:\", source._id);",
+          "if (source && source._id && requestName.includes(\"moderate product\")) console.log(\"Product moderation completed:\", source._id);",
+          "if (source && source._id && requestName.includes(\"correct and link\")) console.log(\"AI detection corrected and linked:\", source._id);",
+          "if (source && source._id && requestName.includes(\"resolve review\")) console.log(\"Review report resolved:\", source._id);",
+          "if (source && source._id && requestName.includes(\"resolve order\")) console.log(\"Order complaint resolved:\", source._id);",
+          "if (source && source._id && requestName.includes(\"assign ticket\")) console.log(\"Ticket assigned:\", source._id);",
+          "if (source && source._id && requestName.includes(\"update ticket status\")) console.log(\"Ticket status updated:\", source._id);",
+          "if (source && source._id && requestName.includes(\"set ticket priority\")) console.log(\"Ticket priority updated:\", source._id);",
+          "if (source && source._id && requestName.includes(\"reply ticket\")) console.log(\"Ticket reply sent:\", source._id);",
+          "if (source && source._id && requestName.includes(\"add product point\")) console.log(\"Product point added:\", source._id);",
+          "if (source && source._id && requestName.includes(\"update product point\")) console.log(\"Product point updated:\", source._id);",
+          "if (source && source._id && requestName.includes(\"delete product point\")) console.log(\"Product point removed:\", source._id);",
+          "if (source && source._id && requestName.includes(\"add showroom item\")) console.log(\"Showroom item added:\", source._id);",
+          "if (source && source._id && requestName.includes(\"update showroom transform\")) console.log(\"Showroom transform updated:\", source._id);",
+          "if (source && source._id && requestName.includes(\"delete showroom item\")) console.log(\"Showroom item removed:\", source._id);",
+          "if (source && source._id && requestName.includes(\"upload environment model\")) console.log(\"Environment uploaded:\", source._id);",
+          "if (source && source._id && requestName.includes(\"update scanner configuration\")) console.log(\"Scanner configuration saved:\", source._id);",
+          "if (source && source._id && requestName.includes(\"hide review\")) console.log(\"Review hidden:\", source._id);",
+          "if (source && source._id && requestName.includes(\"delete spam review\")) console.log(\"Spam review deleted:\", source._id);",
+          "if (source && source._id && requestName.includes(\"restore review\")) console.log(\"Review restored:\", source._id);",
+          "if (source && source._id && requestName.includes(\"report review\")) console.log(\"Review reported:\", source._id);",
+          "if (source && source._id && requestName.includes(\"refund payment\")) console.log(\"Payment refunded:\", source._id);",
+          "if (source && source._id && requestName.includes(\"update supplier payout\")) console.log(\"Supplier payout updated:\", source._id);",
+          "if (source && source._id && requestName.includes(\"disable promotion\")) console.log(\"Promotion disabled:\", source._id);",
+          "if (source && source._id && requestName.includes(\"refund order\")) console.log(\"Order refunded:\", source._id);",
+          "if (source && source._id && requestName.includes(\"cancel order\")) console.log(\"Order cancelled:\", source._id);",
+          "if (source && source._id && requestName.includes(\"update order status\")) console.log(\"Order status updated:\", source._id);",
+          "if (source && source._id && requestName.includes(\"link brand suppliers\")) console.log(\"Brand suppliers linked:\", source._id);",
+          "if (source && source._id && requestName.includes(\"toggle brand visibility\")) console.log(\"Brand visibility changed:\", source._id);",
+          "if (source && source._id && requestName.includes(\"reorder categories\")) console.log(\"Category order updated\");",
+          "if (source && source._id && requestName.includes(\"upload category image\")) console.log(\"Category image updated:\", source._id);",
+          "if (source && source._id && requestName.includes(\"suspend supplier\")) console.log(\"Supplier status changed:\", source._id);",
+          "if (source && source._id && requestName.includes(\"change user role\")) console.log(\"User role changed:\", source._id);",
+          "if (source && source._id && requestName.includes(\"lock or unlock user\")) console.log(\"User account status changed:\", source._id);",
+          "if (source && source._id && requestName.includes(\"submit supplier application\")) console.log(\"Supplier application submitted:\", source._id);",
+          "if (source && source._id && requestName.includes(\"admin product settings\")) console.log(\"Product settings updated:\", source._id);",
+          "if (source && source._id && requestName.includes(\"update product\")) console.log(\"Product updated:\", source._id);",
+          "if (source && source._id && requestName.includes(\"delete product\")) console.log(\"Product deleted:\", source._id);",
+          "if (source && source._id && requestName.includes(\"update promotion\")) console.log(\"Promotion updated:\", source._id);",
+          "if (source && source._id && requestName.includes(\"update showroom\")) console.log(\"Showroom updated:\", source._id);",
+          "if (source && source._id && requestName.includes(\"update product space\")) console.log(\"Product Space updated:\", source._id);",
+          "if (source && source._id && requestName.includes(\"update category\")) console.log(\"Category updated:\", source._id);",
+          "if (source && source._id && requestName.includes(\"delete category\")) console.log(\"Category deleted:\", source._id);",
+          "if (source && source._id && requestName.includes(\"update brand\")) console.log(\"Brand updated:\", source._id);",
+          "if (source && source._id && requestName.includes(\"delete brand\")) console.log(\"Brand deleted:\", source._id);",
+          "if (source && source._id && requestName.includes(\"admin reply ticket\")) console.log(\"Admin reply sent:\", source._id);",
+          "if (source && source._id && requestName.includes(\"user reply ticket\")) console.log(\"User reply sent:\", source._id);",
+          "if (source && source._id && requestName.includes(\"create support ticket\")) console.log(\"Support ticket ready for workflow:\", source._id);",
+          "if (source && source._id && requestName.includes(\"create review\")) console.log(\"Review ready for moderation:\", source._id);",
+          "if (source && source._id && requestName.includes(\"create order\")) console.log(\"Order ready for admin workflow:\", source._id);",
+          "if (source && source._id && requestName.includes(\"create promotion\")) console.log(\"Promotion ready for validation:\", source._id);",
+          "if (source && source._id && requestName.includes(\"create showroom\")) console.log(\"Showroom ready for model upload:\", source._id);",
+          "if (source && source._id && requestName.includes(\"upload product space\")) console.log(\"Product Space ready for points:\", source._id);",
+          "if (source && source._id && requestName.includes(\"create brand\")) console.log(\"Brand ready for supplier links:\", source._id);",
+          "if (source && source._id && requestName.includes(\"create category\")) console.log(\"Category ready for image upload:\", source._id);",
+          "if (source && source.id && requestName.includes(\"ai scanner - scan image\")) console.log(\"Scan ready for admin review:\", source.id);",
+          "if (source && source._id && requestName.includes(\"report review\")) console.log(\"Report ready for admin resolution:\", source._id);",
+          "if (source && source._id && requestName.includes(\"add product point\")) console.log(\"Point ready for coordinate update:\", source._id);",
+          "if (source && source._id && requestName.includes(\"add showroom item\")) console.log(\"Item ready for transform update:\", source._id);",
+          "if (source && source._id && requestName.includes(\"scanner history\")) console.log(\"Detection ready for correction:\", source._id);",
+          "if (source && source._id && requestName.includes(\"admin all reviews\")) console.log(\"Review ready for moderation:\", source._id);",
+          "if (source && source._id && requestName.includes(\"admin all tickets\")) console.log(\"Ticket ready for assignment:\", source._id);",
+          "if (source && source._id && requestName.includes(\"admin all orders\")) console.log(\"Order ready for processing:\", source._id);",
+          "if (source && source._id && requestName.includes(\"payment history\")) console.log(\"Payment ready for reconciliation:\", source._id);",
+          "if (source && source._id && requestName.includes(\"admin promotions\")) console.log(\"Promotion ready for update:\", source._id);",
+          "if (source && source._id && requestName.includes(\"admin showrooms\")) console.log(\"Showroom ready for editing:\", source._id);",
+          "if (source && source._id && requestName.includes(\"admin product spaces\")) console.log(\"Product Space ready for editing:\", source._id);",
+          "if (source && source._id && requestName.includes(\"admin all products\")) console.log(\"Product ready for moderation:\", source._id);",
+          "if (source && source._id && requestName.includes(\"admin brands\")) console.log(\"Brand ready for management:\", source._id);",
+          "if (source && source._id && requestName.includes(\"public categories\")) console.log(\"Category ID saved:\", source._id);",
+          "if (source && source._id && requestName.includes(\"list approved suppliers\")) console.log(\"Supplier ID saved:\", source._id);",
+          "if (source && source._id && requestName.includes(\"admin user detail\")) console.log(\"User ID saved:\", source._id);",
+          "if (source && source._id && requestName.includes(\"supplier detail\")) console.log(\"Supplier detail loaded:\", source._id);",
+          "if (source && source._id && requestName.includes(\"promotion detail\")) console.log(\"Promotion detail loaded:\", source._id);",
+          "if (source && source._id && requestName.includes(\"payment detail\")) console.log(\"Payment detail loaded:\", source._id);",
+          "if (source && source._id && requestName.includes(\"admin order detail\")) console.log(\"Order detail loaded:\", source._id);",
+          "if (source && source._id && requestName.includes(\"preview showroom\")) console.log(\"Showroom preview loaded:\", source._id);",
+          "if (source && source._id && requestName.includes(\"preview product space\")) console.log(\"Product Space preview loaded:\", source._id);",
+          "if (source && source._id && requestName.includes(\"get result by id\")) console.log(\"AI scan result loaded:\", source._id);",
+          "if (source && source._id && requestName.includes(\"scanner api errors\")) console.log(\"Scanner error log loaded\");",
+          "if (source && source._id && requestName.includes(\"scanner statistics\")) console.log(\"Scanner statistics loaded\");",
+          "if (source && source._id && requestName.includes(\"scanner configuration\")) console.log(\"Scanner configuration loaded\");",
+          "if (source && source._id && requestName.includes(\"supplier payouts\")) console.log(\"Supplier payouts loaded\");",
+          "if (source && source._id && requestName.includes(\"export payments csv\")) console.log(\"CSV export response received\");",
+          "if (source && source._id && requestName.includes(\"dashboard revenue\")) console.log(\"Revenue report loaded\");",
+          "if (source && source._id && requestName.includes(\"brand products\")) console.log(\"Brand products loaded\");",
+          "if (source && source._id && requestName.includes(\"my orders\")) console.log(\"User orders loaded\");",
+          "if (source && source._id && requestName.includes(\"my support tickets\")) console.log(\"User tickets loaded\");",
+          "if (source && source._id && requestName.includes(\"supplier my products\")) console.log(\"Supplier products loaded\");",
+          "if (source && source._id && requestName.includes(\"public product reviews\")) console.log(\"Product reviews loaded\");",
+          "if (source && source._id && requestName.includes(\"public showrooms\")) console.log(\"Published showrooms loaded\");",
+          "if (source && source._id && requestName.includes(\"public product spaces\")) console.log(\"Public Product Spaces loaded\");",
+          "if (source && source._id && requestName.includes(\"public brands\")) console.log(\"Public brands loaded\");",
+          "if (source && source._id && requestName.includes(\"public categories\")) console.log(\"Public categories loaded\");",
+          "if (source && source._id && requestName.includes(\"admin all\")) console.log(\"Admin list loaded with reusable ID\");",
+          "if (source && source._id && requestName.includes(\"detail\")) console.log(\"Detail request completed with reusable ID\");",
+          "if (source && source._id && requestName.includes(\"create\")) console.log(\"Create request completed and ID stored\");",
+          "if (source && source._id && requestName.includes(\"update\")) console.log(\"Update request completed and ID preserved\");",
+          "if (source && source._id && requestName.includes(\"delete\")) console.log(\"Delete request completed\");",
+          "if (source && source._id && requestName.includes(\"patch\")) console.log(\"Patch request completed\");",
+          "if (source && source._id && requestName.includes(\"post\")) console.log(\"Post request completed\");",
+          "if (source && source._id && requestName.includes(\"get\")) console.log(\"Get request completed\");",
+          "if (source && source._id && requestName.includes(\"admin\")) console.log(\"Admin request completed\");",
+          "if (source && source._id && requestName.includes(\"user\")) console.log(\"User request completed\");",
+          "if (source && source._id && requestName.includes(\"supplier\")) console.log(\"Supplier request completed\");",
+          "if (source && source._id && requestName.includes(\"public\")) console.log(\"Public request completed\");",
+          "if (source && source._id && requestName.includes(\"preview\")) console.log(\"Preview request completed\");",
+          "if (source && source._id && requestName.includes(\"upload\")) console.log(\"Upload request completed\");",
+          "if (source && source._id && requestName.includes(\"validate\")) console.log(\"Validation request completed\");",
+          "if (source && source._id && requestName.includes(\"export\")) console.log(\"Export request completed\");",
+          "if (source && source._id && requestName.includes(\"history\")) console.log(\"History request completed\");",
+          "if (source && source._id && requestName.includes(\"statistics\")) console.log(\"Statistics request completed\");",
+          "if (source && source._id && requestName.includes(\"configuration\")) console.log(\"Configuration request completed\");",
+          "if (source && source._id && requestName.includes(\"errors\")) console.log(\"Error log request completed\");",
+          "if (source && source._id && requestName.includes(\"status\")) console.log(\"Status request completed\");",
+          "if (source && source._id && requestName.includes(\"priority\")) console.log(\"Priority request completed\");",
+          "if (source && source._id && requestName.includes(\"assign\")) console.log(\"Assignment request completed\");",
+          "if (source && source._id && requestName.includes(\"reply\")) console.log(\"Reply request completed\");",
+          "if (source && source._id && requestName.includes(\"report\")) console.log(\"Report request completed\");",
+          "if (source && source._id && requestName.includes(\"resolve\")) console.log(\"Resolution request completed\");",
+          "if (source && source._id && requestName.includes(\"restore\")) console.log(\"Restore request completed\");",
+          "if (source && source._id && requestName.includes(\"hide\")) console.log(\"Hide request completed\");",
+          "if (source && source._id && requestName.includes(\"spam\")) console.log(\"Spam moderation request completed\");",
+          "if (source && source._id && requestName.includes(\"point\")) console.log(\"Product point request completed\");",
+          "if (source && source._id && requestName.includes(\"item\")) console.log(\"Showroom item request completed\");",
+          "if (source && source._id && requestName.includes(\"model\")) console.log(\"Model request completed\");",
+          "if (source && source._id && requestName.includes(\"transform\")) console.log(\"Transform request completed\");",
+          "if (source && source._id && requestName.includes(\"environment\")) console.log(\"Environment request completed\");",
+          "if (source && source._id && requestName.includes(\"scanner\")) console.log(\"Scanner request completed\");",
+          "if (source && source._id && requestName.includes(\"detection\")) console.log(\"Detection request completed\");",
+          "if (source && source._id && requestName.includes(\"promotion\")) console.log(\"Promotion request completed\");",
+          "if (source && source._id && requestName.includes(\"payment\")) console.log(\"Payment request completed\");",
+          "if (source && source._id && requestName.includes(\"payout\")) console.log(\"Payout request completed\");",
+          "if (source && source._id && requestName.includes(\"refund\")) console.log(\"Refund request completed\");",
+          "if (source && source._id && requestName.includes(\"order\")) console.log(\"Order request completed\");",
+          "if (source && source._id && requestName.includes(\"complaint\")) console.log(\"Complaint request completed\");",
+          "if (source && source._id && requestName.includes(\"cancel\")) console.log(\"Cancellation request completed\");",
+          "if (source && source._id && requestName.includes(\"product\")) console.log(\"Product request completed\");",
+          "if (source && source._id && requestName.includes(\"moderation\")) console.log(\"Moderation request completed\");",
+          "if (source && source._id && requestName.includes(\"settings\")) console.log(\"Settings request completed\");",
+          "if (source && source._id && requestName.includes(\"brand\")) console.log(\"Brand request completed\");",
+          "if (source && source._id && requestName.includes(\"visibility\")) console.log(\"Visibility request completed\");",
+          "if (source && source._id && requestName.includes(\"category\")) console.log(\"Category request completed\");",
+          "if (source && source._id && requestName.includes(\"reorder\")) console.log(\"Reorder request completed\");",
+          "if (source && source._id && requestName.includes(\"supplier\")) console.log(\"Supplier request completed\");",
+          "if (source && source._id && requestName.includes(\"application\")) console.log(\"Application request completed\");",
+          "if (source && source._id && requestName.includes(\"user\")) console.log(\"User request completed\");",
+          "if (source && source._id && requestName.includes(\"role\")) console.log(\"Role request completed\");",
+          "if (source && source._id && requestName.includes(\"lock\")) console.log(\"Lock request completed\");",
+          "if (source && source._id && requestName.includes(\"dashboard\")) console.log(\"Dashboard request completed\");",
+          "if (source && source._id && requestName.includes(\"revenue\")) console.log(\"Revenue request completed\");",
+          "if (source && source._id && requestName.includes(\"space\")) console.log(\"Product Space request completed\");",
+          "if (source && source._id && requestName.includes(\"showroom\")) console.log(\"Showroom request completed\");",
+          "if (source && source._id && requestName.includes(\"review\")) console.log(\"Review request completed\");",
+          "if (source && source._id && requestName.includes(\"ticket\")) console.log(\"Support Ticket request completed\");",
+          "if (source && source._id && requestName.includes(\"support\")) console.log(\"Support request completed\");",
+          "if (source && source._id && requestName.includes(\"dispute\")) console.log(\"Dispute request completed\");",
+          "if (source && source._id && requestName.includes(\"scan\")) console.log(\"Scan request completed\");",
+          "if (source && source._id && requestName.includes(\"confidence\")) console.log(\"Confidence request completed\");",
+          "if (source && source._id && requestName.includes(\"link detection\")) console.log(\"Detection link request completed\");",
+          "if (source && source._id && requestName.includes(\"image\")) console.log(\"Image request completed\");",
+          "if (source && source._id && requestName.includes(\"csv\")) console.log(\"CSV request completed\");",
+          "if (source && source._id && requestName.includes(\"supplier payout\")) console.log(\"Supplier payout request completed\");",
+          "if (source && source._id && requestName.includes(\"product settings\")) console.log(\"Product settings request completed\");",
+          "if (source && source._id && requestName.includes(\"order status\")) console.log(\"Order status request completed\");",
+          "if (source && source._id && requestName.includes(\"ticket status\")) console.log(\"Ticket status request completed\");",
+          "if (source && source._id && requestName.includes(\"ticket priority\")) console.log(\"Ticket priority request completed\");",
+          "if (source && source._id && requestName.includes(\"ticket staff\")) console.log(\"Ticket assignment request completed\");",
+          "if (source && source._id && requestName.includes(\"review report\")) console.log(\"Review report request completed\");",
+          "if (source && source._id && requestName.includes(\"spam review\")) console.log(\"Spam review request completed\");",
+          "if (source && source._id && requestName.includes(\"product point\")) console.log(\"Product point request completed\");",
+          "if (source && source._id && requestName.includes(\"showroom item\")) console.log(\"Showroom item request completed\");",
+          "if (source && source._id && requestName.includes(\"scanner config\")) console.log(\"Scanner config request completed\");",
+          "if (source && source._id && requestName.includes(\"scanner error\")) console.log(\"Scanner error request completed\");",
+          "if (source && source._id && requestName.includes(\"scanner history\")) console.log(\"Scanner history request completed\");",
+          "if (source && source._id && requestName.includes(\"promotion detail\")) console.log(\"Promotion detail request completed\");",
+          "if (source && source._id && requestName.includes(\"payment detail\")) console.log(\"Payment detail request completed\");",
+          "if (source && source._id && requestName.includes(\"order detail\")) console.log(\"Order detail request completed\");",
+          "if (source && source._id && requestName.includes(\"supplier detail\")) console.log(\"Supplier detail request completed\");",
+          "if (source && source._id && requestName.includes(\"user detail\")) console.log(\"User detail request completed\");",
+          "if (source && source._id && requestName.includes(\"brand products\")) console.log(\"Brand product request completed\");",
+          "if (source && source._id && requestName.includes(\"supplier products\")) console.log(\"Supplier product request completed\");",
+          "if (source && source._id && requestName.includes(\"public reviews\")) console.log(\"Public review request completed\");",
+          "if (source && source._id && requestName.includes(\"public showrooms\")) console.log(\"Public showroom request completed\");",
+          "if (source && source._id && requestName.includes(\"public spaces\")) console.log(\"Public Product Space request completed\");",
+          "if (source && source._id && requestName.includes(\"my tickets\")) console.log(\"My tickets request completed\");",
+          "if (source && source._id && requestName.includes(\"my orders\")) console.log(\"My orders request completed\");",
+          "if (source && source._id && requestName.includes(\"my products\")) console.log(\"My products request completed\");",
+          "if (source && source._id && requestName.includes(\"all tickets\")) console.log(\"All tickets request completed\");",
+          "if (source && source._id && requestName.includes(\"all reviews\")) console.log(\"All reviews request completed\");",
+          "if (source && source._id && requestName.includes(\"all orders\")) console.log(\"All orders request completed\");",
+          "if (source && source._id && requestName.includes(\"all products\")) console.log(\"All products request completed\");",
+          "if (source && source._id && requestName.includes(\"all promotions\")) console.log(\"All promotions request completed\");",
+          "if (source && source._id && requestName.includes(\"all showrooms\")) console.log(\"All showrooms request completed\");",
+          "if (source && source._id && requestName.includes(\"all spaces\")) console.log(\"All Product Spaces request completed\");",
+          "if (source && source._id && requestName.includes(\"all brands\")) console.log(\"All brands request completed\");",
+          "if (source && source._id && requestName.includes(\"all suppliers\")) console.log(\"All suppliers request completed\");",
+          "if (source && source._id && requestName.includes(\"all users\")) console.log(\"All users request completed\");",
+          "if (source && source._id && requestName.includes(\"product space preview\")) console.log(\"Product Space preview request completed\");",
+          "if (source && source._id && requestName.includes(\"showroom preview\")) console.log(\"Showroom preview request completed\");",
+          "if (source && source._id && requestName.includes(\"scanner result\")) console.log(\"Scanner result request completed\");",
+          "if (source && source._id && requestName.includes(\"review moderation\")) console.log(\"Review moderation request completed\");",
+          "if (source && source._id && requestName.includes(\"ticket workflow\")) console.log(\"Ticket workflow request completed\");",
+          "if (source && source._id && requestName.includes(\"payment reconciliation\")) console.log(\"Payment reconciliation request completed\");",
+          "if (source && source._id && requestName.includes(\"order workflow\")) console.log(\"Order workflow request completed\");",
+          "if (source && source._id && requestName.includes(\"product moderation\")) console.log(\"Product moderation request completed\");",
+          "if (source && source._id && requestName.includes(\"supplier approval\")) console.log(\"Supplier approval request completed\");",
+          "if (source && source._id && requestName.includes(\"category management\")) console.log(\"Category management request completed\");",
+          "if (source && source._id && requestName.includes(\"brand management\")) console.log(\"Brand management request completed\");",
+          "if (source && source._id && requestName.includes(\"promotion management\")) console.log(\"Promotion management request completed\");",
+          "if (source && source._id && requestName.includes(\"showroom management\")) console.log(\"Showroom management request completed\");",
+          "if (source && source._id && requestName.includes(\"product space management\")) console.log(\"Product Space management request completed\");",
+          "if (source && source._id && requestName.includes(\"scanner management\")) console.log(\"Scanner management request completed\");",
+          "if (source && source._id && requestName.includes(\"review management\")) console.log(\"Review management request completed\");",
+          "if (source && source._id && requestName.includes(\"support management\")) console.log(\"Support management request completed\");",
+          "if (source && source._id && requestName.includes(\"admin center\")) console.log(\"Admin Center request completed\");",
+          "if (source && source._id && requestName.includes(\"decoho\")) console.log(\"DECOHO API request completed\");",
+          "if (source && source._id) console.log(\"Reusable resource id:\", source._id);",
+          "if (source && source.id && !source._id) console.log(\"Reusable resource id:\", source.id);",
+          "if (source && source.roomId) console.log(\"Reusable room id:\", source.roomId);",
+          "if (source && source.productId) console.log(\"Related product id:\", getId(source.productId));",
+          "if (source && source.supplierId) console.log(\"Related supplier id:\", getId(source.supplierId));",
+          "if (source && source.orderId) console.log(\"Related order id:\", getId(source.orderId));",
+          "if (source && source.assignedStaffId) console.log(\"Assigned staff id:\", getId(source.assignedStaffId));",
+          "if (source && source.products && source.products[0]) console.log(\"First detection id:\", getId(source.products[0]));",
+          "if (source && source.reports && source.reports[0]) console.log(\"First report id:\", getId(source.reports[0]));",
+          "if (source && source.productPoints && source.productPoints[0]) console.log(\"First point id:\", getId(source.productPoints[0]));",
+          "if (source && source.items && source.items[0]) console.log(\"First item id:\", getId(source.items[0]));",
+          "if (source && source.ticketCode) console.log(\"Ticket code:\", source.ticketCode);",
+          "if (source && source.orderCode) console.log(\"Order code:\", source.orderCode);",
+          "if (source && source.code && source.discountType) console.log(\"Promotion code:\", source.code);",
+          "if (source && source.model && source.confidenceThreshold !== undefined) console.log(\"Scanner model:\", source.model, \"threshold:\", source.confidenceThreshold);",
+          "if (source && source.status) console.log(\"Resource status:\", source.status);",
+          "if (source && source.priority) console.log(\"Ticket priority:\", source.priority);",
+          "if (source && source.rating) console.log(\"Review rating:\", source.rating);",
+          "if (source && source.isPublic !== undefined) console.log(\"Public visibility:\", source.isPublic);",
+          "if (source && source.isFeatured !== undefined) console.log(\"Featured status:\", source.isFeatured);",
+          "if (source && source.environmentModelUrl) console.log(\"Environment model:\", source.environmentModelUrl);",
+          "if (source && source.needsReview !== undefined) console.log(\"Needs AI review:\", source.needsReview);",
+          "if (source && source.reports) console.log(\"Review reports:\", source.reports.length);",
+          "if (source && source.messages) console.log(\"Ticket messages:\", source.messages.length);",
+          "if (source && source.productPoints) console.log(\"Product points:\", source.productPoints.length);",
+          "if (source && source.items && source.createdBy) console.log(\"Showroom items:\", source.items.length);",
+          "if (source && source.products && source.model) console.log(\"AI detections:\", source.products.length);",
+          "if (source && source.usageCount !== undefined) console.log(\"Promotion usage:\", source.usageCount, \"/\", source.usageLimit);",
+          "if (source && source.refundedAmount !== undefined) console.log(\"Order refunded amount:\", source.refundedAmount);",
+          "if (source && source.refunded !== undefined) console.log(\"Payment refunded amount:\", source.refunded);",
+          "if (source && source.stock !== undefined) console.log(\"Product stock:\", source.stock);",
+          "if (source && source.supplierApplicationStatus) console.log(\"Supplier application status:\", source.supplierApplicationStatus);",
+          "if (source && source.role) console.log(\"User role:\", source.role);",
+          "if (source && source.error) console.warn(\"API error response:\", source.error);",
+          "if (source && source.message && pm.response.code >= 400) console.warn(\"API error message:\", source.message);",
+          "if (pm.response.code >= 200 && pm.response.code < 300) console.log(\"DECOHO request succeeded:\", pm.info.requestName);",
+          "if (pm.response.code >= 400) console.warn(\"DECOHO request failed:\", pm.info.requestName, pm.response.code);",
+          "if (pm.response.code === 401) console.warn(\"Token missing or expired. Run Login or Admin Login again.\");",
+          "if (pm.response.code === 403) console.warn(\"Current token does not have the required role.\");",
+          "if (pm.response.code === 404) console.warn(\"Resource id may be empty or no longer exists. Run the list/create request first.\");",
+          "if (pm.response.code === 400) console.warn(\"Check request body and collection variables.\");",
+          "if (pm.response.code >= 500) console.warn(\"Check NestJS terminal logs and external API configuration.\");",
+          "if (requestName.includes(\"upload\") && pm.response.code === 400) console.warn(\"Select a local file in the form-data field before sending.\");",
+          "if (requestName.includes(\"scanner\") && pm.response.code >= 400) console.warn(\"Check GEMINI_API_KEY, model configuration and quota.\");",
+          "if (requestName.includes(\"showroom\") && pm.response.code === 400) console.warn(\"Only GLB/GLTF models up to 50 MB are accepted.\");",
+          "if (requestName.includes(\"product space\") && pm.response.code === 400) console.warn(\"Point x/y must be percentages from 0 to 100.\");",
+          "if (requestName.includes(\"promotion\") && pm.response.code === 400) console.warn(\"Check dates, discount value, scope and usage limit.\");",
+          "if (requestName.includes(\"review\") && pm.response.code === 400) console.warn(\"Rating must be 1-5 and image values must be valid URLs.\");",
+          "if (requestName.includes(\"ticket\") && pm.response.code === 400) console.warn(\"Check ticket type, status, priority and staffId.\");",
+          "if (requestName.includes(\"order\") && pm.response.code === 400) console.warn(\"Check productId, quantities and customer shipping data.\");",
+          "if (requestName.includes(\"payment\") && pm.response.code === 400) console.warn(\"Check refund amount, reason and payout status.\");",
+          "if (requestName.includes(\"supplier\") && pm.response.code === 400) console.warn(\"Check Supplier application fields and status.\");",
+          "if (requestName.includes(\"category\") && pm.response.code === 400) console.warn(\"Check category name, parent and display order.\");",
+          "if (requestName.includes(\"brand\") && pm.response.code === 400) console.warn(\"Check brand name, logo URL and supplier IDs.\");",
+          "if (requestName.includes(\"product\") && pm.response.code === 400) console.warn(\"Check product payload, status and moderation action.\");",
+          "if (requestName.includes(\"role\") && pm.response.code === 403) console.warn(\"Only ADMIN/SUPER_ADMIN can change protected roles.\");",
+          "if (requestName.includes(\"assign ticket\") && pm.response.code === 400) console.warn(\"staffId must belong to STAFF, ADMIN or SUPER_ADMIN.\");",
+          "if (requestName.includes(\"correct and link\") && pm.response.code === 404) console.warn(\"Run Scanner History first to populate scanResultId and detectionId.\");",
+          "if (requestName.includes(\"resolve review report\") && pm.response.code === 404) console.warn(\"Run Admin All Reviews first to populate reviewId and reportId.\");",
+          "if (requestName.includes(\"product point\") && pm.response.code === 404) console.warn(\"Run Admin Product Spaces or Add Product Point first.\");",
+          "if (requestName.includes(\"showroom item\") && pm.response.code === 404) console.warn(\"Run Admin Showrooms or Add Showroom Item first.\");",
+          "if (requestName.includes(\"ticket\") && pm.response.code === 404) console.warn(\"Run My Support Tickets or Admin All Tickets first.\");",
+          "if (requestName.includes(\"review\") && pm.response.code === 404) console.warn(\"Run Public Reviews or Admin All Reviews first.\");",
+          "if (requestName.includes(\"promotion\") && pm.response.code === 404) console.warn(\"Run Admin Promotions or Create Promotion first.\");",
+          "if (requestName.includes(\"payment\") && pm.response.code === 404) console.warn(\"Run Payment History first.\");",
+          "if (requestName.includes(\"order\") && pm.response.code === 404) console.warn(\"Run My Orders or Admin All Orders first.\");",
+          "if (requestName.includes(\"product\") && pm.response.code === 404) console.warn(\"Run Products or Admin All Products first.\");",
+          "if (requestName.includes(\"brand\") && pm.response.code === 404) console.warn(\"Run Public Brands or Admin Brands first.\");",
+          "if (requestName.includes(\"category\") && pm.response.code === 404) console.warn(\"Run Public Categories or Create Category first.\");",
+          "if (requestName.includes(\"supplier\") && pm.response.code === 404) console.warn(\"Run Supplier list/application request first.\");",
+          "if (requestName.includes(\"user\") && pm.response.code === 404) console.warn(\"Run Admin Users or Login first.\");",
+          "if (requestName.includes(\"showroom\") && pm.response.code === 404) console.warn(\"Run Admin Showrooms or Create Showroom first.\");",
+          "if (requestName.includes(\"product space\") && pm.response.code === 404) console.warn(\"Run Admin Product Spaces or Upload Product Space first.\");",
+          "if (requestName.includes(\"scanner\") && pm.response.code === 404) console.warn(\"Run AI Scanner - Scan Image or Scanner History first.\");",
+          "if (requestName.includes(\"admin\") && pm.response.code === 401) console.warn(\"Run Admin Login and verify adminAccessToken.\");",
+          "if (!requestName.includes(\"admin\") && pm.response.code === 401) console.warn(\"Run Login and verify userAccessToken.\");",
+          "if (pm.response.code === 429) console.warn(\"Rate limit or AI quota exceeded. Retry later.\");",
+          "if (pm.response.code === 502 || pm.response.code === 504) console.warn(\"External AI service unavailable or timed out.\");",
+          "if (pm.response.code === 409) console.warn(\"Resource already exists or conflicts with current data.\");",
+          "if (pm.response.code === 422) console.warn(\"Request data is semantically invalid.\");",
+          "if (pm.response.code === 413) console.warn(\"Uploaded file is too large.\");",
+          "if (pm.response.code === 415) console.warn(\"Unsupported file or content type.\");",
+          "if (pm.response.code === 201) console.log(\"Resource created successfully.\");",
+          "if (pm.response.code === 200) console.log(\"Request completed successfully.\");",
+          "if (pm.response.code === 204) console.log(\"Request completed with no response body.\");",
+          "if (pm.response.code >= 200 && pm.response.code < 300 && source) console.log(\"Collection variables updated where applicable.\");",
+          "if (pm.response.code >= 200 && pm.response.code < 300 && !source) console.log(\"Successful response has no JSON body.\");",
+          "if (requestName.includes(\"export payments\") && pm.response.code === 200) console.log(\"Use Save Response to store the CSV file.\");",
+          "if (requestName.includes(\"upload product model\") && pm.response.code === 200) console.log(\"Copy secureUrl into Add Showroom Item modelUrl.\");",
+          "if (requestName.includes(\"scanner history\") && source && source.products && source.products[0]) console.log(\"detectionId saved for Correct and Link Detection.\");",
+          "if (requestName.includes(\"admin all reviews\") && source && source.reports && source.reports[0]) console.log(\"reportId saved for Resolve Review Report.\");",
+          "if (requestName.includes(\"add product point\") && source && source.productPoints) console.log(\"pointId saved for point update/delete.\");",
+          "if (requestName.includes(\"add showroom item\") && source && source.items) console.log(\"showroomItemId saved for transform/delete.\");",
+          "if (requestName.includes(\"create support ticket\") && source) console.log(\"ticketId saved for replies and admin workflow.\");",
+          "if (requestName.includes(\"create review\") && source) console.log(\"reviewId saved for reporting and moderation.\");",
+          "if (requestName.includes(\"create community post\") && source) { setVar(\"communityPostId\", getId(source)); setVar(\"communityCreatorId\", getId(source.userId)); }",
+          "if (requestName.includes(\"community feed\") && source && source.items && source.items[0]) { setVar(\"communityPostId\", getId(source.items[0])); setVar(\"communityCreatorId\", getId(source.items[0].userId)); }",
+          "if (requestName.includes(\"create order\") && source) console.log(\"orderId saved for complaint and admin workflow.\");",
+          "if (requestName.includes(\"create promotion\") && source) console.log(\"promotionId saved for update/disable.\");",
+          "if (requestName.includes(\"create showroom\") && source) console.log(\"showroomId saved for model upload and items.\");",
+          "if (requestName.includes(\"upload product space\") && source) console.log(\"productSpaceId saved for points and visibility.\");",
+          "if (requestName.includes(\"create brand\") && source) console.log(\"brandId saved for update and supplier links.\");",
+          "if (requestName.includes(\"create category\") && source) console.log(\"categoryId saved for image, update and delete.\");",
+          "if (requestName.includes(\"ai scanner - scan image\") && source) console.log(\"scanResultId saved for saved result and admin review.\");",
+          "if (requestName.includes(\"admin login\") && json.accessToken) console.log(\"adminAccessToken saved.\");",
+          "if (requestName === \"login\" && json.accessToken) console.log(\"userAccessToken saved.\");",
+          "if (requestName.includes(\"register\") && json.verifyToken) console.log(\"verificationToken saved.\");",
+          "if (requestName.includes(\"verify\") && pm.response.code === 200) console.log(\"Email verification completed.\");",
+          "if (requestName.includes(\"refresh\") && json.accessToken) console.log(\"Access token refreshed.\");",
+          "if (requestName.includes(\"logout\") && pm.response.code < 300) console.log(\"Session logged out.\");",
+          "if (requestName.includes(\"profile\") && source) console.log(\"Profile loaded.\");",
+          "if (requestName.includes(\"avatar\") && source) console.log(\"Avatar updated.\");",
+          "if (requestName.includes(\"room\") && source) console.log(\"Room resource processed.\");",
+          "if (requestName.includes(\"decor plan\") && source) console.log(\"Decor plan processed.\");",
+          "if (requestName.includes(\"favorite\") && source) console.log(\"Favorite processed.\");",
+          "if (requestName.includes(\"dashboard\") && source) console.log(\"Admin dashboard loaded.\");",
+          "if (source && source._id) setVar(\"lastResourceId\", source._id);",
+          "if (source && source.id) setVar(\"lastResourceId\", source.id);",
+          "if (source && source.roomId) setVar(\"lastResourceId\", source.roomId);",
+          "console.log(\"Finished DECOHO collection test script for:\", pm.info.requestName);"
         ]
       }
     }
@@ -94,17 +1037,17 @@
   "variable": [
     {
       "key": "host_main",
-      "value": "http://localhost:3000/api",
+      "value": "http://localhost:3001/api",
       "type": "string"
     },
     {
       "key": "baseUrl",
-      "value": "http://localhost:3000/api",
+      "value": "http://localhost:3001/api",
       "type": "string"
     },
     {
       "key": "baseurl",
-      "value": "http://localhost:3000/api",
+      "value": "http://localhost:3001/api",
       "type": "string"
     },
     {
@@ -138,7 +1081,27 @@
       "type": "string"
     },
     {
+      "key": "userAccessToken",
+      "value": "",
+      "type": "string"
+    },
+    {
       "key": "refreshToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "userRefreshToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "adminAccessToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "adminRefreshToken",
       "value": "",
       "type": "string"
     },
@@ -163,6 +1126,11 @@
       "type": "string"
     },
     {
+      "key": "adminUserId",
+      "value": "",
+      "type": "string"
+    },
+    {
       "key": "roomId",
       "value": "",
       "type": "string"
@@ -182,6 +1150,30 @@
       "value": "",
       "type": "string"
     },
+    {
+      "key": "scanResultId",
+      "value": "",
+      "type": "string"
+    },
+    { "key": "categoryId", "value": "", "type": "string" },
+    { "key": "brandId", "value": "", "type": "string" },
+    { "key": "supplierId", "value": "", "type": "string" },
+    { "key": "orderId", "value": "", "type": "string" },
+    { "key": "paymentId", "value": "", "type": "string" },
+    { "key": "promotionId", "value": "", "type": "string" },
+    { "key": "productSpaceId", "value": "", "type": "string" },
+    { "key": "pointId", "value": "", "type": "string" },
+    { "key": "showroomId", "value": "", "type": "string" },
+    { "key": "showroomItemId", "value": "", "type": "string" },
+    { "key": "detectionId", "value": "", "type": "string" },
+    { "key": "reviewId", "value": "", "type": "string" },
+    { "key": "reportId", "value": "", "type": "string" },
+    { "key": "ticketId", "value": "", "type": "string" },
+    { "key": "staffId", "value": "", "type": "string" },
+    { "key": "websiteContentId", "value": "", "type": "string" },
+    { "key": "communityPostId", "value": "", "type": "string" },
+    { "key": "communityCreatorId", "value": "", "type": "string" },
+    { "key": "googleCredential", "value": "", "type": "string" },
     {
       "key": "style",
       "value": "Minimalist",
@@ -219,20 +1211,8 @@
                 }
               }
             },
-            "url": {
-              "raw": "http://localhost:3000/api/auth/register",
-              "host": [
-                "localhost"
-              ],
-              "path": [
-                "api",
-                "auth",
-                "register"
-              ],
-              "protocol": "http",
-              "port": "3000"
-            },
-            "description": "Registers the email, creates verifyToken/verifyLink, and attempts to send Gmail verification email. If emailSent=false, configure MAIL_USER/MAIL_PASS or open verificationLink manually."
+            "url": "{{baseUrl}}/auth/register",
+            "description": "Public registration always creates a CUSTOMER account. Supplier access must be requested separately and approved by ADMIN."
           },
           "event": [
             {
@@ -426,7 +1406,9 @@
                   "});",
                   "const json = pm.response.json();",
                   "if (json.accessToken) pm.collectionVariables.set('accessToken', json.accessToken);",
+                  "if (json.accessToken) pm.collectionVariables.set('userAccessToken', json.accessToken);",
                   "if (json.refreshToken) pm.collectionVariables.set('refreshToken', json.refreshToken);",
+                  "if (json.refreshToken) pm.collectionVariables.set('userRefreshToken', json.refreshToken);",
                   "if (json.user && (json.user._id || json.user.id)) pm.collectionVariables.set('userId', json.user._id || json.user.id);"
                 ]
               }
@@ -468,7 +1450,7 @@
               "protocol": "http",
               "port": "3000"
             },
-            "description": "Login with an ADMIN account before calling POST /products or GET /admin/dashboard."
+            "description": "Login with an ADMIN account before calling POST /products or GET /admin/dashboard. This stores adminAccessToken and does not overwrite userAccessToken used by Rooms."
           },
           "event": [
             {
@@ -480,9 +1462,9 @@
                   "  pm.response.to.have.status(200);",
                   "});",
                   "const json = pm.response.json();",
-                  "if (json.accessToken) pm.collectionVariables.set('accessToken', json.accessToken);",
-                  "if (json.refreshToken) pm.collectionVariables.set('refreshToken', json.refreshToken);",
-                  "if (json.user && (json.user._id || json.user.id)) pm.collectionVariables.set('userId', json.user._id || json.user.id);"
+                  "if (json.accessToken) pm.collectionVariables.set('adminAccessToken', json.accessToken);",
+                  "if (json.refreshToken) pm.collectionVariables.set('adminRefreshToken', json.refreshToken);",
+                  "if (json.user && (json.user._id || json.user.id)) pm.collectionVariables.set('adminUserId', json.user._id || json.user.id);"
                 ]
               }
             }
@@ -543,7 +1525,9 @@
                   "});",
                   "const json = pm.response.json();",
                   "if (json.accessToken) pm.collectionVariables.set('accessToken', json.accessToken);",
-                  "if (json.refreshToken) pm.collectionVariables.set('refreshToken', json.refreshToken);"
+                  "if (json.accessToken) pm.collectionVariables.set('userAccessToken', json.accessToken);",
+                  "if (json.refreshToken) pm.collectionVariables.set('refreshToken', json.refreshToken);",
+                  "if (json.refreshToken) pm.collectionVariables.set('userRefreshToken', json.refreshToken);"
                 ]
               }
             }
@@ -610,6 +1594,57 @@
               "port": "3000"
             },
             "description": "Revoke the current stored refresh token."
+          }
+        },
+        {
+          "name": "List Users",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminAccessToken}}", "type": "string" }] },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3000/api/admin/users",
+              "host": ["localhost"],
+              "path": ["api", "admin", "users"],
+              "protocol": "http",
+              "port": "3000"
+            },
+            "description": "List CUSTOMER, SUPPLIER and ADMIN accounts. Requires ADMIN token."
+          }
+        },
+        {
+          "name": "Pending Supplier Applications",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminAccessToken}}", "type": "string" }] },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3000/api/admin/supplier-applications",
+              "host": ["localhost"],
+              "path": ["api", "admin", "supplier-applications"],
+              "protocol": "http",
+              "port": "3000"
+            }
+          }
+        },
+        {
+          "name": "Approve Supplier Application",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminAccessToken}}", "type": "string" }] },
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"decision\": \"APPROVE\",\n  \"note\": \"Hồ sơ hợp lệ\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "http://localhost:3000/api/admin/supplier-applications/{{userId}}",
+              "host": ["localhost"],
+              "path": ["api", "admin", "supplier-applications", "{{userId}}"],
+              "protocol": "http",
+              "port": "3000"
+            }
           }
         }
       ],
@@ -774,7 +1809,7 @@
               "protocol": "http",
               "port": "3000"
             },
-            "description": "Upload a room image to Cloudinary and create a room document."
+            "description": "Upload a room image to Cloudinary and create a room document. The response returns roomId for AI and Decor Plan requests."
           },
           "event": [
             {
@@ -786,7 +1821,8 @@
                   "  pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
                   "});",
                   "const json = pm.response.json();",
-                  "if (json._id) pm.collectionVariables.set('roomId', json._id);"
+                  "const roomId = json.roomId || json._id || json.id;",
+                  "if (roomId) pm.collectionVariables.set('roomId', roomId);"
                 ]
               }
             }
@@ -809,7 +1845,7 @@
               "protocol": "http",
               "port": "3000"
             },
-            "description": "Returns rooms for the current user. If at least one room exists, roomId is saved automatically."
+            "description": "Returns rooms for the current user. If at least one room exists, roomId is saved automatically from roomId/_id."
           }
         },
         {
@@ -829,7 +1865,8 @@
               ],
               "protocol": "http",
               "port": "3000"
-            }
+            },
+            "description": "Uses userAccessToken. The roomId must belong to the logged-in user. If this returns 404, run Login again with the room owner account, then Get Rooms, then Get Room By ID."
           }
         },
         {
@@ -853,7 +1890,7 @@
           }
         }
       ],
-      "description": "Upload or get rooms. The collection stores roomId automatically from upload/list/detail responses."
+      "description": "Upload or get rooms with userAccessToken from normal Login. The collection stores roomId automatically from upload/list/detail responses. Do not use an ADMIN token for these requests."
     },
     {
       "name": "04 AI - Analysis",
@@ -950,11 +1987,123 @@
       "description": "Uses roomId to analyze uploaded room data."
     },
     {
-      "name": "05 Products - Data",
+      "name": "05 AI Scanner - Gemini Vision",
       "item": [
         {
-          "name": "Create Product - ADMIN",
+          "name": "AI Scanner - Scan Image",
           "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "image",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/ai-scanner/scan",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "ai-scanner",
+                "scan"
+              ]
+            },
+            "description": "Select a JPG, PNG, or WEBP image up to 10 MB. The backend sends it to Gemini Vision using GEMINI_API_KEY and GEMINI_MODEL, saves the structured result in MongoDB, and stores the returned id as scanResultId. Common errors: 400 invalid image/schema, 401 invalid Gemini API key, 429 quota/rate limit, 502 Gemini connection error, 504 Gemini timeout."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('AI Scanner returns a saved result', function () {",
+                  "  pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "if (json.id || json._id) pm.collectionVariables.set('scanResultId', json.id || json._id);",
+                  "pm.test('Result contains products array', function () {",
+                  "  pm.expect(json.products).to.be.an('array');",
+                  "});",
+                  "pm.test('Result contains room analysis fields', function () {",
+                  "  pm.expect(json.roomType).to.be.a('string');",
+                  "  pm.expect(json.dominantColors).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "AI Scanner - Get Result By ID",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/ai-scanner/{{scanResultId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "ai-scanner",
+                "{{scanResultId}}"
+              ]
+            },
+            "description": "Returns the MongoDB scan result created by AI Scanner - Scan Image."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Saved AI scan result returned', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.expect(json.id || json._id).to.eql(pm.collectionVariables.get('scanResultId'));"
+                ]
+              }
+            }
+          ]
+        }
+      ],
+      "description": "Upload an interior image for Gemini Vision product detection, then retrieve the saved MongoDB result. Configure GEMINI_API_KEY, GEMINI_MODEL, and GEMINI_TIMEOUT_MS in the backend. No bearer token is currently required."
+    },
+    {
+      "name": "06 Products - Data",
+      "item": [
+        {
+          "name": "Create Product - ADMIN or SUPPLIER",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
             "method": "POST",
             "header": [
               {
@@ -964,7 +2113,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Minimalist Wooden Desk\",\n  \"price\": 4500000,\n  \"image\": \"https://res.cloudinary.com/decoho/image/upload/products/desk.jpg\",\n  \"styleTags\": [\"minimalist\", \"modern\", \"workspace\"],\n  \"category\": \"desk\",\n  \"ecommercePlatform\": \"IKEA\",\n  \"productLink\": \"https://www.ikea.com/us/en/p/example-product\"\n}",
+              "raw": "{\n  \"name\": \"Bàn làm việc phong cách Minimalist\",\n  \"price\": 4500000,\n  \"image\": \"https://res.cloudinary.com/decoho/image/upload/products/desk.jpg\",\n  \"styleTags\": [\"minimalist\", \"modern\", \"workspace\"],\n  \"category\": \"desk\",\n  \"ecommercePlatform\": \"Shopee\",\n  \"productLink\": \"https://shopee.vn/example-product-i.123456.789012\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -983,7 +2132,7 @@
               "protocol": "http",
               "port": "3000"
             },
-            "description": "Requires ADMIN access token."
+            "description": "Requires ADMIN or an approved SUPPLIER access token. A CUSTOMER must submit a supplier application and wait for ADMIN approval first."
           },
           "event": [
             {
@@ -1048,6 +2197,31 @@
           }
         },
         {
+          "name": "Open Product Link",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3000/api/products/{{productId}}/redirect",
+              "host": [
+                "localhost"
+              ],
+              "path": [
+                "api",
+                "products",
+                "{{productId}}",
+                "redirect"
+              ],
+              "protocol": "http",
+              "port": "3000"
+            },
+            "description": "Redirects to productLink on the third-party platform, for example Shopee/Lazada/Tiki. In frontend, use redirectUrl or externalUrl from product response."
+          }
+        },
+        {
           "name": "Get Products By Style",
           "request": {
             "auth": {
@@ -1096,10 +2270,10 @@
           }
         }
       ],
-      "description": "Get products or create products as ADMIN. The collection stores productId automatically."
+      "description": "Public product browsing plus ADMIN/SUPPLIER product management. Supplier ownership is enforced by the backend."
     },
     {
-      "name": "06 Decor Plans - Data",
+      "name": "07 Decor Plans - Data",
       "item": [
         {
           "name": "Generate Decor Plan",
@@ -1156,7 +2330,7 @@
       "description": "Generate a decor plan from roomId, budget, and style. The collection stores decorPlanId automatically."
     },
     {
-      "name": "07 Favorites - Data",
+      "name": "08 Favorites - Data",
       "item": [
         {
           "name": "Save Decor Plan",
@@ -1265,11 +2439,21 @@
       "description": "Save and list decor plan favorites. The collection stores favoriteId automatically."
     },
     {
-      "name": "08 Admin - Dashboard",
+      "name": "09 Admin - Dashboard",
       "item": [
         {
           "name": "Dashboard",
           "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
             "method": "GET",
             "header": [],
             "url": {
@@ -1290,6 +2474,313 @@
         }
       ],
       "description": "Requires an ADMIN access token from Admin Login."
+    },
+    {
+      "name": "10 Admin - Users & Suppliers (Updated)",
+      "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminAccessToken}}", "type": "string" }] },
+      "item": [
+        { "name": "Dashboard Revenue", "request": { "method": "GET", "url": "{{baseUrl}}/admin/dashboard/revenue?period=month" } },
+        { "name": "Admin User Detail", "request": { "method": "GET", "url": "{{baseUrl}}/admin/users/{{userId}}" } },
+        { "name": "Lock or Unlock User", "request": { "method": "PATCH", "header": [{"key":"Content-Type","value":"application/json"}], "body": {"mode":"raw","raw":"{\n  \"status\": \"ACTIVE\"\n}"}, "url": "{{baseUrl}}/admin/users/{{userId}}/status" } },
+        { "name": "Change User Role", "request": { "method": "PATCH", "header": [{"key":"Content-Type","value":"application/json"}], "body": {"mode":"raw","raw":"{\n  \"role\": \"STAFF\"\n}"}, "url": "{{baseUrl}}/admin/users/{{userId}}/role" } },
+        { "name": "List Approved Suppliers", "request": { "method": "GET", "url": "{{baseUrl}}/admin/suppliers?status=APPROVED" } },
+        { "name": "Supplier Detail", "request": { "method": "GET", "url": "{{baseUrl}}/admin/suppliers/{{supplierId}}" } },
+        { "name": "Suspend Supplier", "request": { "method": "PATCH", "header": [{"key":"Content-Type","value":"application/json"}], "body": {"mode":"raw","raw":"{\n  \"status\": \"SUSPENDED\",\n  \"reason\": \"Tạm ngưng để kiểm tra hồ sơ\"\n}"}, "url": "{{baseUrl}}/admin/suppliers/{{supplierId}}/status" } },
+        { "name": "Submit Supplier Application", "auth": {"type":"bearer","bearer":[{"key":"token","value":"{{userAccessToken}}","type":"string"}]}, "request": { "method": "PATCH", "header": [{"key":"Content-Type","value":"application/json"}], "body": {"mode":"raw","raw":"{\n  \"businessName\": \"Mộc Nhiên Living\",\n  \"taxCode\": \"0312345678\",\n  \"businessLicenseUrl\": \"https://example.com/license.pdf\"\n}"}, "url": "{{baseUrl}}/users/me/supplier-application" } }
+      ]
+    },
+    {
+      "name": "11 Categories & Brands (Updated)",
+      "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminAccessToken}}", "type": "string" }] },
+      "item": [
+        { "name": "Public Categories", "auth":{"type":"noauth"}, "request": {"method":"GET","url":"{{baseUrl}}/categories"} },
+        { "name": "Create Category", "request": {"method":"POST","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\n  \"name\": \"Sofa\",\n  \"order\": 1\n}"},"url":"{{baseUrl}}/categories"} },
+        { "name": "Reorder Categories", "request": {"method":"PATCH","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\n  \"items\": [{ \"id\": \"{{categoryId}}\", \"order\": 1 }]\n}"},"url":"{{baseUrl}}/categories/reorder"} },
+        { "name": "Update Category", "request": {"method":"PATCH","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\n  \"name\": \"Sofa phòng khách\"\n}"},"url":"{{baseUrl}}/categories/{{categoryId}}"} },
+        { "name": "Upload Category Image", "request": {"method":"PATCH","body":{"mode":"formdata","formdata":[{"key":"image","type":"file","src":[]}]},"url":"{{baseUrl}}/categories/{{categoryId}}/image"} },
+        { "name": "Delete Category", "request": {"method":"DELETE","url":"{{baseUrl}}/categories/{{categoryId}}"} },
+        { "name": "Public Brands", "auth":{"type":"noauth"}, "request": {"method":"GET","url":"{{baseUrl}}/brands"} },
+        { "name": "Public Brand Products", "auth":{"type":"noauth"}, "request": {"method":"GET","url":"{{baseUrl}}/brands/{{brandId}}/products"} },
+        { "name": "Admin Brands", "request": {"method":"GET","url":"{{baseUrl}}/brands/admin/all"} },
+        { "name": "Create Brand", "request": {"method":"POST","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\n  \"name\": \"DECOHO Living\",\n  \"logo\": \"https://example.com/logo.png\"\n}"},"url":"{{baseUrl}}/brands"} },
+        { "name": "Update Brand", "request": {"method":"PATCH","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\n  \"name\": \"DECOHO Home\"\n}"},"url":"{{baseUrl}}/brands/{{brandId}}"} },
+        { "name": "Toggle Brand Visibility", "request": {"method":"PATCH","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\n  \"isVisible\": false\n}"},"url":"{{baseUrl}}/brands/{{brandId}}/visibility"} },
+        { "name": "Link Brand Suppliers", "request": {"method":"PUT","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\n  \"supplierIds\": [\"{{supplierId}}\"]\n}"},"url":"{{baseUrl}}/brands/{{brandId}}/suppliers"} },
+        { "name": "Brand Products", "request": {"method":"GET","url":"{{baseUrl}}/brands/admin/{{brandId}}/products"} },
+        { "name": "Delete Brand", "request": {"method":"DELETE","url":"{{baseUrl}}/brands/{{brandId}}"} }
+      ]
+    },
+    {
+      "name": "12 Products & Orders Admin (Updated)",
+      "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminAccessToken}}", "type": "string" }] },
+      "item": [
+        { "name": "Supplier My Products", "auth":{"type":"bearer","bearer":[{"key":"token","value":"{{userAccessToken}}","type":"string"}]}, "request":{"method":"GET","url":"{{baseUrl}}/products/supplier/mine"} },
+        { "name": "Admin All Products", "request":{"method":"GET","url":"{{baseUrl}}/products/admin/all?status=PENDING"} },
+        { "name": "Admin Product Settings", "request":{"method":"PATCH","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\n  \"stock\": 20,\n  \"isFeatured\": true,\n  \"discountPercent\": 10\n}"},"url":"{{baseUrl}}/products/admin/{{productId}}/settings"} },
+        { "name": "Moderate Product", "request":{"method":"PATCH","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\n  \"action\": \"APPROVE\",\n  \"reason\": \"Thông tin hợp lệ\"\n}"},"url":"{{baseUrl}}/products/admin/{{productId}}/moderation"} },
+        { "name": "Update Product", "request":{"method":"PATCH","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\n  \"name\": \"Sofa Cloud Updated\"\n}"},"url":"{{baseUrl}}/products/{{productId}}"} },
+        { "name": "Delete Product", "request":{"method":"DELETE","url":"{{baseUrl}}/products/{{productId}}"} },
+        { "name": "Create Order", "auth":{"type":"bearer","bearer":[{"key":"token","value":"{{userAccessToken}}","type":"string"}]}, "request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\n  \"items\": [{\"productId\":\"{{productId}}\",\"quantity\":1}],\n  \"customerName\":\"Nguyen Van A\",\n  \"customerEmail\":\"vana@gmail.com\",\n  \"customerPhone\":\"0901234567\",\n  \"shippingAddress\":\"TP.HCM\",\n  \"paymentMethod\":\"COD\",\n  \"promotionCode\":\"DECOHO20\"\n}"},"url":"{{baseUrl}}/orders"} },
+        { "name": "My Orders", "auth":{"type":"bearer","bearer":[{"key":"token","value":"{{userAccessToken}}","type":"string"}]}, "request":{"method":"GET","url":"{{baseUrl}}/orders/mine"} },
+        { "name": "Submit Order Complaint", "auth":{"type":"bearer","bearer":[{"key":"token","value":"{{userAccessToken}}","type":"string"}]}, "request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\n  \"message\": \"Sản phẩm bị trầy xước khi nhận hàng\"\n}"},"url":"{{baseUrl}}/orders/mine/{{orderId}}/complaint"} },
+        { "name": "Admin All Orders", "request":{"method":"GET","url":"{{baseUrl}}/orders/admin/all?status=PENDING"} },
+        { "name": "Admin Order Detail", "request":{"method":"GET","url":"{{baseUrl}}/orders/admin/{{orderId}}"} },
+        { "name": "Update Order Status", "request":{"method":"PATCH","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\n  \"note\": \"Đã xác nhận đơn\"\n}"},"url":"{{baseUrl}}/orders/admin/{{orderId}}/status/CONFIRMED"} },
+        { "name": "Cancel Order", "request":{"method":"PATCH","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\n  \"reason\": \"Khách hàng yêu cầu hủy\"\n}"},"url":"{{baseUrl}}/orders/admin/{{orderId}}/cancel"} },
+        { "name": "Refund Order", "request":{"method":"PATCH","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\n  \"amount\": 100000,\n  \"reason\": \"Hoàn tiền khiếu nại\"\n}"},"url":"{{baseUrl}}/orders/admin/{{orderId}}/refund"} },
+        { "name": "Resolve Order Complaint", "request":{"method":"PATCH","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\n  \"status\": \"RESOLVED\",\n  \"resolution\": \"Đã đổi sản phẩm mới\"\n}"},"url":"{{baseUrl}}/orders/admin/{{orderId}}/complaint/resolve"} }
+      ]
+    },
+    {
+      "name": "13 Payments & Promotions (Updated)",
+      "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminAccessToken}}", "type": "string" }] },
+      "item": [
+        { "name": "Payment History", "request":{"method":"GET","url":"{{baseUrl}}/payments/admin?status=SUCCESS"} },
+        { "name": "Supplier Payouts", "request":{"method":"GET","url":"{{baseUrl}}/payments/admin/supplier-payouts"} },
+        { "name": "Export Payments CSV", "request":{"method":"GET","url":"{{baseUrl}}/payments/admin/export"} },
+        { "name": "Payment Detail", "request":{"method":"GET","url":"{{baseUrl}}/payments/admin/{{paymentId}}"} },
+        { "name": "Refund Payment", "request":{"method":"PATCH","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\n  \"amount\": 100000,\n  \"reason\": \"Hoàn tiền theo yêu cầu\"\n}"},"url":"{{baseUrl}}/payments/admin/{{paymentId}}/refund"} },
+        { "name": "Update Supplier Payout", "request":{"method":"PATCH","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\n  \"status\": \"PAID\",\n  \"note\": \"Đã đối soát\"\n}"},"url":"{{baseUrl}}/payments/admin/{{paymentId}}/payout"} },
+        { "name": "Validate Promotion", "auth":{"type":"noauth"}, "request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\n  \"code\": \"DECOHO20\",\n  \"subtotal\": 10000000,\n  \"productIds\": [\"{{productId}}\"],\n  \"supplierIds\": [\"{{supplierId}}\"]\n}"},"url":"{{baseUrl}}/promotions/validate"} },
+        { "name": "Admin Promotions", "request":{"method":"GET","url":"{{baseUrl}}/promotions/admin/all"} },
+        { "name": "Promotion Detail", "request":{"method":"GET","url":"{{baseUrl}}/promotions/admin/{{promotionId}}"} },
+        { "name": "Create Promotion", "request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\n  \"code\": \"DECOHO20\",\n  \"discountType\": \"percentage\",\n  \"discountValue\": 20,\n  \"startDate\": \"2026-08-01T00:00:00.000Z\",\n  \"endDate\": \"2026-08-31T23:59:59.000Z\",\n  \"usageLimit\": 100\n}"},"url":"{{baseUrl}}/promotions"} },
+        { "name": "Update Promotion", "request":{"method":"PATCH","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\n  \"usageLimit\": 200\n}"},"url":"{{baseUrl}}/promotions/{{promotionId}}"} },
+        { "name": "Disable Promotion", "request":{"method":"PATCH","url":"{{baseUrl}}/promotions/{{promotionId}}/disable"} }
+      ]
+    },
+    {
+      "name": "14 Product Space & Showroom 3D (Updated)",
+      "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminAccessToken}}", "type": "string" }] },
+      "item": [
+        { "name":"Public Product Spaces", "auth":{"type":"noauth"}, "request":{"method":"GET","url":"{{baseUrl}}/product-spaces"} },
+        { "name":"Preview Product Space", "auth":{"type":"noauth"}, "request":{"method":"GET","url":"{{baseUrl}}/product-spaces/{{productSpaceId}}"} },
+        { "name":"Admin Product Spaces", "request":{"method":"GET","url":"{{baseUrl}}/product-spaces/admin/all"} },
+        { "name":"Upload Product Space", "request":{"method":"POST","body":{"mode":"formdata","formdata":[{"key":"image","type":"file","src":[]},{"key":"title","value":"Phòng khách Japandi","type":"text"},{"key":"roomType","value":"living_room","type":"text"},{"key":"width","value":"4.5","type":"text"},{"key":"length","value":"6.2","type":"text"},{"key":"isPublic","value":"true","type":"text"}]},"url":"{{baseUrl}}/product-spaces/admin/upload"} },
+        { "name":"Update Product Space", "request":{"method":"PATCH","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\n  \"title\": \"Phòng khách Contemporary\",\n  \"isPublic\": true,\n  \"isFeatured\": true\n}"},"url":"{{baseUrl}}/product-spaces/admin/{{productSpaceId}}"} },
+        { "name":"Add Product Point", "request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\n  \"productId\": \"{{productId}}\",\n  \"x\": 45,\n  \"y\": 60\n}"},"url":"{{baseUrl}}/product-spaces/admin/{{productSpaceId}}/points"} },
+        { "name":"Update Product Point", "request":{"method":"PATCH","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\n  \"productId\": \"{{productId}}\",\n  \"x\": 50,\n  \"y\": 55\n}"},"url":"{{baseUrl}}/product-spaces/admin/{{productSpaceId}}/points/{{pointId}}"} },
+        { "name":"Delete Product Point", "request":{"method":"DELETE","url":"{{baseUrl}}/product-spaces/admin/{{productSpaceId}}/points/{{pointId}}"} },
+        { "name":"Public Showrooms", "auth":{"type":"noauth"}, "request":{"method":"GET","url":"{{baseUrl}}/showrooms"} },
+        { "name":"Preview Showroom", "auth":{"type":"noauth"}, "request":{"method":"GET","url":"{{baseUrl}}/showrooms/{{showroomId}}"} },
+        { "name":"Admin Showrooms", "request":{"method":"GET","url":"{{baseUrl}}/showrooms/admin/all"} },
+        { "name":"Create Showroom", "request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\n  \"title\": \"Contemporary Living 3D\",\n  \"description\": \"Showroom phòng khách hiện đại\"\n}"},"url":"{{baseUrl}}/showrooms/admin"} },
+        { "name":"Update Showroom", "request":{"method":"PATCH","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\n  \"status\": \"PUBLISHED\"\n}"},"url":"{{baseUrl}}/showrooms/admin/{{showroomId}}"} },
+        { "name":"Upload Environment Model", "request":{"method":"POST","body":{"mode":"formdata","formdata":[{"key":"model","type":"file","src":[]}]},"url":"{{baseUrl}}/showrooms/admin/{{showroomId}}/environment"} },
+        { "name":"Upload Product 3D Model", "request":{"method":"POST","body":{"mode":"formdata","formdata":[{"key":"model","type":"file","src":[]}]},"url":"{{baseUrl}}/showrooms/admin/models/upload"} },
+        { "name":"Add Showroom Item", "request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\n  \"productId\": \"{{productId}}\",\n  \"modelUrl\": \"https://example.com/sofa.glb\",\n  \"position\": {\"x\":0,\"y\":0,\"z\":0},\n  \"rotation\": {\"x\":0,\"y\":45,\"z\":0},\n  \"scale\": {\"x\":1,\"y\":1,\"z\":1}\n}"},"url":"{{baseUrl}}/showrooms/admin/{{showroomId}}/items"} },
+        { "name":"Update Showroom Transform", "request":{"method":"PATCH","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\n  \"position\": {\"x\":1,\"y\":0,\"z\":2},\n  \"rotation\": {\"x\":0,\"y\":90,\"z\":0},\n  \"scale\": {\"x\":1.2,\"y\":1.2,\"z\":1.2}\n}"},"url":"{{baseUrl}}/showrooms/admin/{{showroomId}}/items/{{showroomItemId}}"} },
+        { "name":"Delete Showroom Item", "request":{"method":"DELETE","url":"{{baseUrl}}/showrooms/admin/{{showroomId}}/items/{{showroomItemId}}"} }
+      ]
+    },
+    {
+      "name": "15 AI Product Scanner Admin (Updated)",
+      "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminAccessToken}}", "type": "string" }] },
+      "item": [
+        { "name":"Scanner History", "request":{"method":"GET","url":"{{baseUrl}}/ai-scanner/admin/history?needsReview=true"} },
+        { "name":"Scanner Statistics", "request":{"method":"GET","url":"{{baseUrl}}/ai-scanner/admin/stats"} },
+        { "name":"Scanner API Errors", "request":{"method":"GET","url":"{{baseUrl}}/ai-scanner/admin/errors"} },
+        { "name":"Scanner Configuration", "request":{"method":"GET","url":"{{baseUrl}}/ai-scanner/admin/config"} },
+        { "name":"Update Scanner Configuration", "request":{"method":"PATCH","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\n  \"model\": \"gemini-3.6-flash\",\n  \"confidenceThreshold\": 0.6,\n  \"isActive\": true\n}"},"url":"{{baseUrl}}/ai-scanner/admin/config"} },
+        { "name":"Correct and Link Detection", "request":{"method":"PATCH","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\n  \"name\": \"Sofa vải module\",\n  \"category\": \"Sofa\",\n  \"linkedProductId\": \"{{productId}}\"\n}"},"url":"{{baseUrl}}/ai-scanner/admin/{{scanResultId}}/detections/{{detectionId}}"} }
+      ]
+    },
+    {
+      "name": "16 Reviews (Updated)",
+      "item": [
+        { "name":"Public Product Reviews", "request":{"auth":{"type":"noauth"},"method":"GET","url":"{{baseUrl}}/reviews?productId={{productId}}"} },
+        { "name":"Create Review", "request":{"auth":{"type":"bearer","bearer":[{"key":"token","value":"{{userAccessToken}}","type":"string"}]},"method":"POST","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\n  \"productId\": \"{{productId}}\",\n  \"rating\": 5,\n  \"content\": \"Sản phẩm đẹp và đúng mô tả\",\n  \"images\": [\"https://example.com/review.jpg\"]\n}"},"url":"{{baseUrl}}/reviews"} },
+        { "name":"Report Review", "request":{"auth":{"type":"bearer","bearer":[{"key":"token","value":"{{userAccessToken}}","type":"string"}]},"method":"POST","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\n  \"reason\": \"Nội dung spam hoặc không phù hợp\"\n}"},"url":"{{baseUrl}}/reviews/{{reviewId}}/reports"} },
+        { "name":"Admin All Reviews", "request":{"auth":{"type":"bearer","bearer":[{"key":"token","value":"{{adminAccessToken}}","type":"string"}]},"method":"GET","url":"{{baseUrl}}/reviews/admin/all?reported=true"} },
+        { "name":"Hide Review", "request":{"auth":{"type":"bearer","bearer":[{"key":"token","value":"{{adminAccessToken}}","type":"string"}]},"method":"PATCH","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\n  \"reason\": \"Nội dung vi phạm quy định cộng đồng\"\n}"},"url":"{{baseUrl}}/reviews/admin/{{reviewId}}/hide"} },
+        { "name":"Delete Spam Review", "request":{"auth":{"type":"bearer","bearer":[{"key":"token","value":"{{adminAccessToken}}","type":"string"}]},"method":"PATCH","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\n  \"reason\": \"Spam quảng cáo ngoài nền tảng\"\n}"},"url":"{{baseUrl}}/reviews/admin/{{reviewId}}/delete-spam"} },
+        { "name":"Restore Review", "request":{"auth":{"type":"bearer","bearer":[{"key":"token","value":"{{adminAccessToken}}","type":"string"}]},"method":"PATCH","url":"{{baseUrl}}/reviews/admin/{{reviewId}}/restore"} },
+        { "name":"Resolve Review Report", "request":{"auth":{"type":"bearer","bearer":[{"key":"token","value":"{{adminAccessToken}}","type":"string"}]},"method":"PATCH","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\n  \"reportId\": \"{{reportId}}\",\n  \"resolution\": \"Đã kiểm tra và xử lý nội dung\"\n}"},"url":"{{baseUrl}}/reviews/admin/{{reviewId}}/reports/resolve"} }
+      ]
+    },
+    {
+      "name": "17 Support Tickets (Updated)",
+      "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{userAccessToken}}", "type": "string" }] },
+      "item": [
+        { "name":"Create Support Ticket", "request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\n  \"title\": \"Sofa bị rách khi giao hàng\",\n  \"type\": \"ORDER_COMPLAINT\",\n  \"message\": \"Sản phẩm bị rách khi vừa nhận hàng\",\n  \"orderId\": \"{{orderId}}\",\n  \"supplierId\": \"{{supplierId}}\"\n}"},"url":"{{baseUrl}}/support-tickets"} },
+        { "name":"My Support Tickets", "request":{"method":"GET","url":"{{baseUrl}}/support-tickets/mine"} },
+        { "name":"User Reply Ticket", "request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\n  \"content\": \"Tôi gửi thêm thông tin cho bộ phận hỗ trợ\"\n}"},"url":"{{baseUrl}}/support-tickets/{{ticketId}}/replies"} },
+        { "name":"Admin All Tickets", "auth":{"type":"bearer","bearer":[{"key":"token","value":"{{adminAccessToken}}","type":"string"}]},"request":{"method":"GET","url":"{{baseUrl}}/support-tickets/admin/all?status=OPEN&priority=URGENT"} },
+        { "name":"Admin Reply Ticket", "auth":{"type":"bearer","bearer":[{"key":"token","value":"{{adminAccessToken}}","type":"string"}]},"request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\n  \"content\": \"DECOHO đã tiếp nhận và đang xử lý yêu cầu\"\n}"},"url":"{{baseUrl}}/support-tickets/admin/{{ticketId}}/replies"} },
+        { "name":"Assign Ticket Staff", "auth":{"type":"bearer","bearer":[{"key":"token","value":"{{adminAccessToken}}","type":"string"}]},"request":{"method":"PATCH","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\n  \"staffId\": \"{{staffId}}\"\n}"},"url":"{{baseUrl}}/support-tickets/admin/{{ticketId}}/assign"} },
+        { "name":"Set Ticket Priority", "auth":{"type":"bearer","bearer":[{"key":"token","value":"{{adminAccessToken}}","type":"string"}]},"request":{"method":"PATCH","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\n  \"priority\": \"URGENT\"\n}"},"url":"{{baseUrl}}/support-tickets/admin/{{ticketId}}/priority"} },
+        { "name":"Update Ticket Status", "auth":{"type":"bearer","bearer":[{"key":"token","value":"{{adminAccessToken}}","type":"string"}]},"request":{"method":"PATCH","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\n  \"status\": \"IN_PROGRESS\",\n  \"note\": \"Đã tiếp nhận xử lý\"\n}"},"url":"{{baseUrl}}/support-tickets/admin/{{ticketId}}/status"} }
+      ]
+    },
+    {
+      "name": "18 Website Content CMS (Updated)",
+      "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminAccessToken}}", "type": "string" }] },
+      "item": [
+        { "name":"Public Website Content", "auth":{"type":"noauth"}, "request":{"method":"GET","url":"{{baseUrl}}/website-content?type=BANNER"} },
+        { "name":"Public Content By Slug", "auth":{"type":"noauth"}, "request":{"method":"GET","url":"{{baseUrl}}/website-content/slug/chinh-sach-mua-hang"} },
+        { "name":"Admin Website Content", "request":{"method":"GET","url":"{{baseUrl}}/website-content/admin/all?type=BANNER"} },
+        { "name":"Create Website Content", "request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\n  \"type\": \"BANNER\",\n  \"title\": \"Không gian sống mang dấu ấn riêng\",\n  \"slug\": \"home-hero\",\n  \"content\": \"Khám phá nội thất được tuyển chọn cho ngôi nhà của bạn.\",\n  \"images\": [\"https://example.com/banner.jpg\"],\n  \"linkUrl\": \"https://decoho.vn/cua-hang\",\n  \"linkLabel\": \"Khám phá ngay\",\n  \"displayOrder\": 1,\n  \"status\": \"DRAFT\"\n}"},"url":"{{baseUrl}}/website-content/admin"} },
+        { "name":"Upload Website Content Image", "request":{"method":"POST","body":{"mode":"formdata","formdata":[{"key":"image","type":"file","src":[]}]},"url":"{{baseUrl}}/website-content/admin/images"} },
+        { "name":"Update and Publish Content", "request":{"method":"PATCH","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\n  \"status\": \"PUBLISHED\",\n  \"seoTitle\": \"Nội thất DECOHO\",\n  \"seoDescription\": \"Khám phá không gian sống và sản phẩm nội thất DECOHO.\"\n}"},"url":"{{baseUrl}}/website-content/admin/{{websiteContentId}}"} },
+        { "name":"Reorder Website Content", "request":{"method":"PATCH","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\n  \"items\": [{\"id\":\"{{websiteContentId}}\",\"displayOrder\":1}]\n}"},"url":"{{baseUrl}}/website-content/admin/reorder"} },
+        { "name":"Delete Website Content", "request":{"method":"DELETE","url":"{{baseUrl}}/website-content/admin/{{websiteContentId}}"} }
+      ]
+    },
+    {
+      "name": "19 Community - Real User Data",
+      "item": [
+        {
+          "name": "Public Community Posts",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": "{{baseUrl}}/community/posts?tab=for-you&page=1&limit=10"
+          }
+        },
+        {
+          "name": "Authenticated Community Feed",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{userAccessToken}}", "type": "string" }] },
+            "method": "GET",
+            "url": "{{baseUrl}}/community/feed?tab=for-you&page=1&limit=10"
+          }
+        },
+        {
+          "name": "Following Community Feed",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{userAccessToken}}", "type": "string" }] },
+            "method": "GET",
+            "url": "{{baseUrl}}/community/feed?tab=following&page=1&limit=10"
+          }
+        },
+        {
+          "name": "Trending Community Feed",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": "{{baseUrl}}/community/posts?tab=trending&page=1&limit=10"
+          }
+        },
+        {
+          "name": "Community Creators",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": "{{baseUrl}}/community/creators"
+          }
+        },
+        {
+          "name": "Create Community Post",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{userAccessToken}}", "type": "string" }] },
+            "method": "POST",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "description", "value": "Góc phòng khách của mình sau khi được cải tạo", "type": "text" },
+                { "key": "roomType", "value": "Phòng khách", "type": "text" },
+                { "key": "hashtags", "value": "cozy,phongkhach,decoho", "type": "text" },
+                { "key": "before", "type": "file", "src": [] },
+                { "key": "after", "type": "file", "src": [] }
+              ]
+            },
+            "url": "{{baseUrl}}/community/posts"
+          }
+        },
+        {
+          "name": "Like Community Post",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{userAccessToken}}", "type": "string" }] },
+            "method": "POST",
+            "url": "{{baseUrl}}/community/posts/{{communityPostId}}/like"
+          }
+        },
+        {
+          "name": "Save Community Post",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{userAccessToken}}", "type": "string" }] },
+            "method": "POST",
+            "url": "{{baseUrl}}/community/posts/{{communityPostId}}/save"
+          }
+        },
+        {
+          "name": "Comment Community Post",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{userAccessToken}}", "type": "string" }] },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"content\": \"Không gian rất đẹp và ấm cúng!\"\n}" },
+            "url": "{{baseUrl}}/community/posts/{{communityPostId}}/comments"
+          }
+        },
+        {
+          "name": "Follow Community Creator",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{userAccessToken}}", "type": "string" }] },
+            "method": "POST",
+            "url": "{{baseUrl}}/community/users/{{communityCreatorId}}/follow"
+          }
+        }
+      ]
+    },
+    {
+      "name": "20 First Login Onboarding",
+      "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{userAccessToken}}", "type": "string" }] },
+      "item": [
+        {
+          "name": "Login and Check Onboarding Status",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}" },
+            "url": "{{baseUrl}}/auth/login",
+            "description": "Response user.onboardingCompleted is false before the first survey and true after completing or skipping it. The collection stores userAccessToken automatically."
+          }
+        },
+        {
+          "name": "Google Login",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"credential\": \"{{googleCredential}}\"\n}" },
+            "url": "{{baseUrl}}/auth/google",
+            "description": "Paste a fresh Google Identity Services ID token into googleCredential. The response includes onboardingCompleted."
+          }
+        },
+        {
+          "name": "Get Profile Onboarding Status",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/users/me",
+            "description": "Checks onboardingCompleted and onboardingPreferences stored in MongoDB."
+          }
+        },
+        {
+          "name": "Complete First Login Onboarding",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ageRange\": \"18-24\",\n  \"rooms\": [\"living-room\", \"bedroom\"],\n  \"styles\": [\"japandi\", \"minimal\"],\n  \"budget\": \"25m-75m\",\n  \"colors\": [\"sage-green\", \"peach\", \"beige\"],\n  \"helpOptions\": [\"shopping\", \"moodboards\", \"3d-planning\"]\n}"
+            },
+            "url": "{{baseUrl}}/users/me/onboarding",
+            "description": "Saves real preferences and changes onboardingCompleted to true. Requires userAccessToken."
+          }
+        },
+        {
+          "name": "Skip First Login Onboarding",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"skipped\": true\n}" },
+            "url": "{{baseUrl}}/users/me/onboarding",
+            "description": "Marks onboarding as handled without saving selections, so it will not appear on the next login."
+          }
+        }
+      ]
     }
   ]
 }
