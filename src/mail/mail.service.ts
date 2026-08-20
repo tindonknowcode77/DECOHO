@@ -8,6 +8,13 @@ type VerificationLinkEmailPayload = {
   expiresIn: string;
 };
 
+type PasswordResetEmailPayload = {
+  to: string;
+  fullName: string;
+  resetLink: string;
+  expiresIn: string;
+};
+
 @Injectable()
 export class MailService {
   private transporter?: Transporter;
@@ -33,6 +40,21 @@ export class MailService {
       throw new InternalServerErrorException(
         'Unable to send verification email',
       );
+    }
+  }
+
+  async sendPasswordResetEmail(payload: PasswordResetEmailPayload): Promise<boolean> {
+    if (!this.isSmtpConfigured()) return false;
+    try {
+      await this.getTransporter().sendMail({
+        from: this.getMailFrom(), to: payload.to,
+        subject: 'Reset your DECOHO password',
+        text: `Hello ${payload.fullName},\n\nReset your DECOHO password by opening this link:\n${payload.resetLink}\n\nThis link expires in ${payload.expiresIn}. If you did not request a password reset, you can ignore this email.`,
+        html: `<div style="font-family:Arial,sans-serif;line-height:1.6"><h2>Reset your DECOHO password</h2><p>Hello ${payload.fullName},</p><p>We received a request to reset your password.</p><p><a href="${payload.resetLink}" style="display:inline-block;background:#78953b;color:#fff;padding:12px 18px;text-decoration:none;border-radius:8px">Reset password</a></p><p>Or copy this link into your browser:</p><p style="word-break:break-all">${payload.resetLink}</p><p>This link expires in ${payload.expiresIn}. If you did not request it, you can safely ignore this email.</p></div>`,
+      });
+      return true;
+    } catch {
+      throw new InternalServerErrorException('Unable to send password reset email');
     }
   }
 

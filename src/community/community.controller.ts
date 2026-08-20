@@ -53,6 +53,13 @@ export class CommunityController {
     return this.service.creators();
   }
 
+  @Get('following')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  following(@Req() req: AuthRequest) {
+    return this.service.getFollowingIds(this.user(req));
+  }
+
   @Post('posts')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
