@@ -7,10 +7,20 @@ import { AppModule } from './app.module';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const apiPrefix = process.env.API_PREFIX ?? 'api';
+  const defaultOrigins = [
+    'http://localhost:3000',
+    'http://localhost:3001',
+    'http://127.0.0.1:3000',
+    'http://127.0.0.1:3001',
+    'https://decoho-fe.vercel.app',
+  ];
   const configuredOrigins = (process.env.CORS_ORIGIN ?? '')
     .split(',')
     .map(origin => origin.trim().replace(/\/$/, ''))
     .filter(Boolean);
+  const allowedOrigins = new Set(
+    [...defaultOrigins, ...configuredOrigins].map(origin => origin.replace(/\/$/, '')),
+  );
 
   app.setGlobalPrefix(apiPrefix);
   app.enableCors({
@@ -18,10 +28,12 @@ async function bootstrap() {
       if (!origin) return callback(null, true);
 
       const normalizedOrigin = origin.replace(/\/$/, '');
-      const isConfigured = configuredOrigins.includes(normalizedOrigin);
-      const isLocalFrontend = /^https?:\/\/(localhost|127\.0\.0\.1):3000$/.test(normalizedOrigin);
+      const isAllowedOrigin = allowedOrigins.has(normalizedOrigin);
 
-      callback(isConfigured || isLocalFrontend ? null : new Error(`CORS blocked origin: ${origin}`), isConfigured || isLocalFrontend);
+      callback(
+        isAllowedOrigin ? null : new Error(`CORS blocked origin: ${origin}`),
+        isAllowedOrigin,
+      );
     },
     credentials: true,
     methods: ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],

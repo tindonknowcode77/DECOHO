@@ -84,6 +84,26 @@ class ResendVerificationTokenDto {
   email: string;
 }
 
+class ForgotPasswordDto {
+  @ApiProperty({ example: 'vana@gmail.com' })
+  @IsEmail()
+  @MaxLength(254)
+  email: string;
+}
+
+class ResetPasswordDto {
+  @ApiProperty()
+  @IsString()
+  @MinLength(20)
+  token: string;
+
+  @ApiProperty({ example: 'new-password-123' })
+  @IsString()
+  @MinLength(6)
+  @MaxLength(72)
+  password: string;
+}
+
 type AuthenticatedRequestUser = {
   sub?: string;
   userId?: string;
@@ -142,6 +162,20 @@ export class AuthController {
   })
   login(@Body() loginDto: LoginDto) {
     return this.authService.login(loginDto.email, loginDto.password);
+  }
+
+  @Post('forgot-password')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Send a password reset link if the email exists' })
+  forgotPassword(@Body() dto: ForgotPasswordDto) {
+    return this.authService.requestPasswordReset(dto.email);
+  }
+
+  @Post('reset-password')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Reset password with a one-time reset token' })
+  resetPassword(@Body() dto: ResetPasswordDto) {
+    return this.authService.resetPassword(dto.token, dto.password);
   }
 
   @Post('google')

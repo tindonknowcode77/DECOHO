@@ -366,6 +366,33 @@ export class UsersService {
     }
   }
 
+  async setPasswordResetToken(userId: string, tokenHash: string, expiresAt: Date): Promise<void> {
+    this.assertValidObjectId(userId);
+    const user = await this.userModel.findOneAndUpdate(
+      { _id: userId, status: { $ne: UserStatus.Deleted }, deletedAt: { $exists: false } },
+      { $set: { passwordResetTokenHash: tokenHash, passwordResetExpiresAt: expiresAt } },
+      { new: true },
+    ).exec();
+    if (!user) throw new NotFoundException('User not found');
+  }
+
+  async findByIdWithPasswordResetToken(userId: string): Promise<UserDocument | null> {
+    this.assertValidObjectId(userId);
+    return this.userModel.findOne(
+      { _id: userId, status: { $ne: UserStatus.Deleted }, deletedAt: { $exists: false } },
+    ).select('+passwordResetTokenHash +passwordResetExpiresAt').exec();
+  }
+
+  async resetPassword(userId: string, passwordHash: string): Promise<void> {
+    this.assertValidObjectId(userId);
+    const user = await this.userModel.findOneAndUpdate(
+      { _id: userId, status: { $ne: UserStatus.Deleted }, deletedAt: { $exists: false } },
+      { $set: { passwordHash, authProvider: 'local' }, $unset: { passwordResetTokenHash: '', passwordResetExpiresAt: '', refreshTokenHash: '' } },
+      { new: true },
+    ).exec();
+    if (!user) throw new NotFoundException('User not found');
+  }
+
   async markEmailAsVerified(userId: string): Promise<User> {
     this.assertValidObjectId(userId);
 

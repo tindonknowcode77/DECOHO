@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { JwtService, JwtSignOptions } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
+import { randomBytes } from 'crypto';
 import { MailService } from '../mail/mail.service';
 import { CreateUserDto } from '../users/dto/create-user.dto';
 import { User, UserStatus } from '../users/user.schema';
@@ -18,6 +19,8 @@ type UserWithPrivateFields = User & {
   _id?: { toString(): string };
   passwordHash?: string;
   refreshTokenHash?: string;
+  passwordResetTokenHash?: string;
+  passwordResetExpiresAt?: Date;
   toObject?: () => Record<string, unknown>;
 };
 
@@ -31,6 +34,13 @@ type EmailVerificationPayload = {
   sub: string;
   email: string;
   type: 'email_verification';
+};
+
+type PasswordResetPayload = {
+  sub: string;
+  email: string;
+  nonce: string;
+  type: 'password_reset';
 };
 
 type TokenPair = {
@@ -162,6 +172,36 @@ export class AuthService {
       ...tokens,
       user: this.toAuthUserResponse(user),
     };
+  }
+
+  async requestPasswordReset(email: string): Promise<{ message: string; emailSent: boolean }> {
+    const generic = { message: 'Nếu email tồn tại, DECOHO đã gửi liên kết đặt lại mật khẩu.', emailSent: false };
+    const user = (await this.usersService.findByEmail(email)) as UserWithPrivateFields | null;
+    if (!user || user.status !== UserStatus.Active) return generic;
+
+    const nonce = randomBytes(32).toString('hex');
+    const expiresIn = this.getPasswordResetExpiresIn();
+    const token = await this.jwtService.signAsync<PasswordResetPayload>({ sub: this.getUserId(user), email: user.email, nonce, type: 'password_reset' }, { secret: this.getPasswordResetSecret(), expiresIn });
+    const expiresAt = new Date(Date.now() + this.durationToMilliseconds(String(expiresIn)));
+    await this.usersService.setPasswordResetToken(this.getUserId(user), await bcrypt.hash(nonce, this.passwordSaltRounds), expiresAt);
+
+    const emailSent = await this.mailService.sendPasswordResetEmail({
+      to: user.email, fullName: user.fullName,
+      resetLink: this.buildPasswordResetLink(token), expiresIn: String(expiresIn),
+    });
+    return { ...generic, emailSent };
+  }
+
+  async resetPassword(token: string, password: string): Promise<{ message: string }> {
+    const payload = await this.verifyPasswordResetToken(token);
+    const user = (await this.usersService.findByIdWithPasswordResetToken(payload.sub)) as UserWithPrivateFields | null;
+    if (!user?.passwordResetTokenHash || !user.passwordResetExpiresAt || user.passwordResetExpiresAt.getTime() < Date.now()) {
+      throw new UnauthorizedException('Liên kết đặt lại mật khẩu không hợp lệ hoặc đã hết hạn');
+    }
+    const validNonce = await bcrypt.compare(payload.nonce, user.passwordResetTokenHash);
+    if (!validNonce) throw new UnauthorizedException('Liên kết đặt lại mật khẩu không hợp lệ hoặc đã được sử dụng');
+    await this.usersService.resetPassword(payload.sub, await bcrypt.hash(password, this.passwordSaltRounds));
+    return { message: 'Đặt lại mật khẩu thành công. Hãy đăng nhập bằng mật khẩu mới.' };
   }
 
   async googleLogin(credential: string): Promise<AuthResponse> {
@@ -363,6 +403,17 @@ export class AuthService {
     }
   }
 
+  private async verifyPasswordResetToken(token: string): Promise<PasswordResetPayload> {
+    try {
+      const payload = await this.jwtService.verifyAsync<PasswordResetPayload>(token, { secret: this.getPasswordResetSecret() });
+      if (payload.type !== 'password_reset' || !payload.sub || !payload.nonce) throw new UnauthorizedException('Invalid password reset token');
+      return payload;
+    } catch (error) {
+      if (error instanceof UnauthorizedException) throw error;
+      throw new UnauthorizedException('Liên kết đặt lại mật khẩu không hợp lệ hoặc đã hết hạn');
+    }
+  }
+
   private async generateTokens(user: UserWithPrivateFields): Promise<TokenPair> {
     const payload: TokenPayload = {
       sub: this.getUserId(user),
@@ -469,6 +520,26 @@ export class AuthService {
   > {
     return (process.env.JWT_EMAIL_VERIFICATION_EXPIRES_IN ??
       '1d') as NonNullable<JwtSignOptions['expiresIn']>;
+  }
+
+  private getPasswordResetSecret(): string { return process.env.JWT_PASSWORD_RESET_SECRET ?? this.getRequiredEnv('JWT_ACCESS_SECRET'); }
+
+  private getPasswordResetExpiresIn(): NonNullable<JwtSignOptions['expiresIn']> {
+    return (process.env.JWT_PASSWORD_RESET_EXPIRES_IN ?? '15m') as NonNullable<JwtSignOptions['expiresIn']>;
+  }
+
+  private buildPasswordResetLink(token: string): string {
+    const url = new URL(process.env.PASSWORD_RESET_URL ?? 'http://localhost:3000/reset-password');
+    url.searchParams.set('token', token);
+    return url.toString();
+  }
+
+  private durationToMilliseconds(value: string): number {
+    const match = /^(\d+)\s*(ms|s|m|h|d)?$/i.exec(value.trim());
+    if (!match) return 15 * 60 * 1000;
+    const amount = Number(match[1]);
+    const unit = (match[2] ?? 'ms').toLowerCase();
+    return amount * ({ ms: 1, s: 1000, m: 60000, h: 3600000, d: 86400000 }[unit] ?? 1);
   }
 
   private buildEmailVerificationLink(token: string): string {

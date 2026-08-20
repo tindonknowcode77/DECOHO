@@ -1,0 +1,41 @@
+services:
+  - type: web
+    name: decoho-api
+    runtime: node
+    plan: free
+    buildCommand: npm ci && npm run build
+    startCommand: npm run start:prod
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: API_PREFIX
+        value: api
+      - key: CORS_ORIGIN
+        value: https://decoho-fe.vercel.app
+      - key: MONGODB_URI
+        sync: false
+      - key: JWT_ACCESS_SECRET
+        generateValue: true
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
+      - key: JWT_EMAIL_VERIFICATION_SECRET
+        generateValue: true
+      - key: JWT_ACCESS_EXPIRES_IN
+        value: 15m
+      - key: JWT_REFRESH_EXPIRES_IN
+        value: 7d
+      - key: JWT_EMAIL_VERIFICATION_EXPIRES_IN
+        value: 1d
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: VITE_GOOGLE_CLIENT_ID
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GEMINI_MODEL
+        value: gemini-2.5-flash
+      - key: EMAIL_VERIFICATION_URL
+        value: https://decoho-fe.vercel.app/verify-email
+      - key: EMAIL_VERIFICATION_EXPOSE_TOKEN
+        value: "false"
