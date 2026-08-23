@@ -22,6 +22,7 @@ import { WebsiteContentModule } from './website-content/website-content.module';
 import { SuppliersModule } from './suppliers/suppliers.module';
 import { SearchModule } from './search/search.module';
 import { CommunityModule } from './community/community.module';
+import { UploadModule } from './upload/upload.module';
 import { AppController } from './app.controller';
 
 function getRequiredEnv(name: string): string {
@@ -61,6 +62,7 @@ function getRequiredEnv(name: string): string {
     SuppliersModule,
     SearchModule,
     CommunityModule,
+    UploadModule,
   ],
   controllers: [AppController],
 })
