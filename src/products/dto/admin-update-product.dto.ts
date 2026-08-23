@@ -1,6 +1,6 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsBoolean, IsNumber, IsOptional, Max, Min } from 'class-validator';
+import { IsBoolean, IsNumber, IsOptional } from 'class-validator';
 import { UpdateProductDto } from './update-product.dto';
 
 export class AdminUpdateProductDto extends UpdateProductDto {
@@ -13,7 +13,5 @@ export class AdminUpdateProductDto extends UpdateProductDto {
   @IsOptional()
   @Type(() => Number)
   @IsNumber()
-  @Min(0)
-  @Max(100)
-  discountPercent?: number;
+  discount?: number;
 }

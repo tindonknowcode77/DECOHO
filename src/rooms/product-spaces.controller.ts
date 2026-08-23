@@ -9,6 +9,7 @@ import { RolesGuard } from '../common/guards/roles.guard';
 import { CreateProductSpaceDto } from './dto/create-product-space.dto';
 import { ProductPointDto } from './dto/product-point.dto';
 import { UpdateProductSpaceDto } from './dto/update-product-space.dto';
+import { ROOM_KIND_MOODBOARD } from './room.schema';
 import { RoomsService } from './rooms.service';
 
 type AdminRequest = Request & { user?: { sub?: string } };
@@ -42,7 +43,7 @@ export class ProductSpacesController {
     const userId = request.user?.sub;
     if (!userId) throw new UnauthorizedException('Authenticated user id is missing');
     dto.isFeatured = false;
-    return this.roomsService.uploadRoom(userId, dto, image);
+    return this.roomsService.uploadRoom(userId, dto, image, ROOM_KIND_MOODBOARD);
   }
 
   @Get('admin/all')
@@ -62,7 +63,7 @@ export class ProductSpacesController {
   upload(@Req() request: AdminRequest, @Body() dto: CreateProductSpaceDto, @UploadedFile() image: Express.Multer.File) {
     const userId = request.user?.sub;
     if (!userId) throw new UnauthorizedException('Authenticated user id is missing');
-    return this.roomsService.uploadRoom(userId, dto, image);
+    return this.roomsService.uploadRoom(userId, dto, image, ROOM_KIND_MOODBOARD);
   }
 
   @Patch('admin/:id')

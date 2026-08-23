@@ -35,14 +35,11 @@ export class ProductsService {
       ...createProductDto,
       ...(supplierId ? { supplierId: new Types.ObjectId(supplierId) } : {}),
       name: createProductDto.name.trim(),
-      category: this.normalizeLabel(createProductDto.category),
-      ecommercePlatform: this.normalizePlatform(
-        createProductDto.ecommercePlatform,
-      ),
-      image: this.normalizeHttpUrl(createProductDto.image),
-      productLink: this.normalizeHttpUrl(createProductDto.productLink),
-      styleTags: createProductDto.styleTags.map((tag) =>
-        this.normalizeLabel(tag),
+      category: createProductDto.category?.trim().toLowerCase(),
+      image: createProductDto.image?.trim() ? this.normalizeHttpUrl(createProductDto.image) : undefined,
+      productLink: createProductDto.productLink?.trim() ? this.normalizeHttpUrl(createProductDto.productLink) : undefined,
+      styleTags: (createProductDto.styleTags ?? []).map((tag) =>
+        tag.trim().toLowerCase(),
       ),
       status: supplierId ? ProductStatus.Pending : ProductStatus.Approved,
     });
@@ -82,10 +79,8 @@ export class ProductsService {
     dto: AdminUpdateProductDto,
   ): Promise<Product> {
     const product = await this.updateOwned(productId, dto, productId, true);
-    const discount = dto.discountPercent ?? product.discountPercent ?? 0;
-    const salePrice = discount > 0
-      ? Math.round(product.price * (1 - discount / 100))
-      : product.price;
+    const discount = dto.discount ?? product.discount ?? 0;
+    const discountPercent = Math.max(0, Math.min(100, discount));
     let status = product.status;
     if (product.stock === 0 && product.status === ProductStatus.Approved) {
       status = ProductStatus.OutOfStock;
@@ -95,7 +90,7 @@ export class ProductsService {
     const updated = await this.productModel
       .findByIdAndUpdate(
         productId,
-        { $set: { discountPercent: discount, salePrice, status } },
+        { $set: { discount: discountPercent, status } },
         { new: true, runValidators: true },
       )
       .exec();
@@ -242,11 +237,9 @@ export class ProductsService {
   }
 
   async findByStyle(style: string): Promise<Product[]> {
-    const normalizedStyle = this.normalizeLabel(style);
-
     return this.productModel
-      .find({ styleTags: normalizedStyle, isLocked: { $ne: true }, $or: [{ status: ProductStatus.Approved }, { status: ProductStatus.OutOfStock }, { status: { $exists: false } }] })
-      .sort({ price: 1, createdAt: -1 })
+      .find({ styleTags: style.trim().toLowerCase(), isLocked: { $ne: true }, $or: [{ status: ProductStatus.Approved }, { status: ProductStatus.OutOfStock }, { status: { $exists: false } }] })
+      .sort({ discount: -1, rating: -1, createdAt: -1 })
       .exec();
   }
 

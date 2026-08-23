@@ -9,11 +9,22 @@ import { CloudinaryService } from '../cloudinary/cloudinary.service';
 import { CreateRoomDto } from './dto/create-room.dto';
 import { ProductPointDto } from './dto/product-point.dto';
 import { UpdateProductSpaceDto } from './dto/update-product-space.dto';
-import { Room, RoomDocument, RoomType } from './room.schema';
+import {
+  ROOM_KIND_MOODBOARD,
+  ROOM_KIND_ROOM,
+  Room,
+  RoomDocument,
+  RoomKind,
+  RoomKindType,
+  RoomType,
+} from './room.schema';
 import { Product, ProductDocument } from '../products/product.schema';
 
 export type RoomResponse = {
+  _id?: string;
+  id?: string;
   roomId: string;
+  kind: RoomKindType;
   userId: string;
   imageUrl: string;
   imagePublicId?: string;
@@ -28,7 +39,30 @@ export type RoomResponse = {
   description?: string;
   isPublic: boolean;
   isFeatured: boolean;
-  productPoints: Array<{ _id?: Types.ObjectId; productId: Types.ObjectId; x: number; y: number }>;
+  productPoints: Array<{
+    _id?: string;
+    productId: string;
+    x: number;
+    y: number;
+    product?: {
+      _id?: string;
+      id?: string;
+      name?: string;
+      price?: number;
+      discount?: number;
+      stock?: number;
+      images?: string[];
+      image?: string;
+      material?: string;
+      category?: string;
+      brand?: string;
+      color?: string;
+      dimensions?: string;
+      rating?: number;
+      status?: string;
+      description?: string;
+    };
+  }>;
   createdAt?: Date;
   updatedAt?: Date;
 };
@@ -59,6 +93,7 @@ export class RoomsService {
     userId: string,
     createRoomDto: CreateRoomDto,
     file: Express.Multer.File,
+    kind: RoomKindType = ROOM_KIND_ROOM,
   ): Promise<RoomResponse> {
     this.assertValidObjectId(userId);
 
@@ -68,6 +103,7 @@ export class RoomsService {
     );
 
     const room = await this.roomModel.create({
+      kind,
       ...createRoomDto,
       userId: new Types.ObjectId(userId),
       imageUrl: uploadedImage.secureUrl,
@@ -85,7 +121,7 @@ export class RoomsService {
     this.assertValidObjectId(userId);
 
     const rooms = await this.roomModel
-      .find(this.buildOwnerFilter(userId))
+      .find({ ...this.buildOwnerFilter(userId), kind: ROOM_KIND_ROOM })
       .sort({ createdAt: -1 })
       .exec();
 
@@ -127,26 +163,26 @@ export class RoomsService {
 
   async getProductSpaces(publicOnly = false) {
     return this.roomModel
-      .find(publicOnly ? { isPublic: true } : {})
+      .find({ kind: ROOM_KIND_MOODBOARD, ...(publicOnly ? { isPublic: true } : {}) })
       .sort({ isFeatured: -1, createdAt: -1 })
-      .populate('productPoints.productId', 'name price images status')
+      .populate('productPoints.productId', 'name price discount stock images image material category brand color dimensions rating status description')
       .exec();
   }
 
   async getUserProductSpaces(userId: string) {
     this.assertValidObjectId(userId);
     return this.roomModel
-      .find(this.buildOwnerFilter(userId))
+      .find({ ...this.buildOwnerFilter(userId), kind: ROOM_KIND_MOODBOARD })
       .sort({ createdAt: -1 })
-      .populate('productPoints.productId', 'name price images status')
+      .populate('productPoints.productId', 'name price discount stock images image material category brand color dimensions rating status description')
       .exec();
   }
 
   async getPublicProductSpace(roomId: string) {
     this.assertValidObjectId(roomId);
     const room = await this.roomModel
-      .findOne({ _id: new Types.ObjectId(roomId), isPublic: true })
-      .populate('productPoints.productId', 'name price images status')
+      .findOne({ _id: new Types.ObjectId(roomId), kind: ROOM_KIND_MOODBOARD, isPublic: true })
+      .populate('productPoints.productId', 'name price discount stock images image material category brand color dimensions rating status description')
       .exec();
     if (!room) throw new NotFoundException('Public Product Space not found');
     return room;
@@ -155,9 +191,18 @@ export class RoomsService {
   async updateProductSpace(roomId: string, dto: UpdateProductSpaceDto) {
     this.assertValidObjectId(roomId);
     if (dto.isFeatured) {
-      await this.roomModel.updateMany({ _id: { $ne: new Types.ObjectId(roomId) } }, { $set: { isFeatured: false } }).exec();
+      await this.roomModel.updateMany(
+        { _id: { $ne: new Types.ObjectId(roomId) }, kind: ROOM_KIND_MOODBOARD },
+        { $set: { isFeatured: false } },
+      ).exec();
     }
-    const room = await this.roomModel.findByIdAndUpdate(roomId, { $set: dto }, { new: true, runValidators: true }).exec();
+    const room = await this.roomModel
+      .findOneAndUpdate(
+        { _id: new Types.ObjectId(roomId), kind: ROOM_KIND_MOODBOARD },
+        { $set: dto },
+        { new: true, runValidators: true },
+      )
+      .exec();
     if (!room) throw new NotFoundException('Product Space not found');
     return room;
   }
@@ -166,7 +211,13 @@ export class RoomsService {
     this.assertValidObjectId(roomId);
     const product = await this.productModel.exists({ _id: new Types.ObjectId(dto.productId) });
     if (!product) throw new NotFoundException('Product not found');
-    const room = await this.roomModel.findByIdAndUpdate(roomId, { $push: { productPoints: { productId: new Types.ObjectId(dto.productId), x: dto.x, y: dto.y } } }, { new: true, runValidators: true }).exec();
+    const room = await this.roomModel
+      .findOneAndUpdate(
+        { _id: new Types.ObjectId(roomId), kind: ROOM_KIND_MOODBOARD },
+        { $push: { productPoints: { productId: new Types.ObjectId(dto.productId), x: dto.x, y: dto.y } } },
+        { new: true, runValidators: true },
+      )
+      .exec();
     if (!room) throw new NotFoundException('Product Space not found');
     return room;
   }
@@ -176,7 +227,7 @@ export class RoomsService {
     const product = await this.productModel.exists({ _id: new Types.ObjectId(dto.productId) });
     if (!product) throw new NotFoundException('Product not found');
     const room = await this.roomModel.findOneAndUpdate(
-      { _id: new Types.ObjectId(roomId), 'productPoints._id': new Types.ObjectId(pointId) },
+      { _id: new Types.ObjectId(roomId), kind: ROOM_KIND_MOODBOARD, 'productPoints._id': new Types.ObjectId(pointId) },
       { $set: { 'productPoints.$.productId': new Types.ObjectId(dto.productId), 'productPoints.$.x': dto.x, 'productPoints.$.y': dto.y } },
       { new: true, runValidators: true },
     ).exec();
@@ -187,7 +238,7 @@ export class RoomsService {
   async deleteProductPoint(roomId: string, pointId: string) {
     this.assertValidObjectId(roomId); this.assertValidObjectId(pointId);
     const room = await this.roomModel.findOneAndUpdate(
-      { _id: new Types.ObjectId(roomId), 'productPoints._id': new Types.ObjectId(pointId) },
+      { _id: new Types.ObjectId(roomId), kind: ROOM_KIND_MOODBOARD, 'productPoints._id': new Types.ObjectId(pointId) },
       { $pull: { productPoints: { _id: new Types.ObjectId(pointId) } } },
       { new: true },
     ).exec();
@@ -228,14 +279,51 @@ export class RoomsService {
 
   private toRoomResponse(room: RoomDocument): RoomResponse {
     const data = room.toObject() as RoomObject;
-    const roomId = data.id ?? data._id?.toString();
+    const idStr = data.id ?? data._id?.toString();
 
-    if (!roomId) {
+    if (!idStr) {
       throw new BadRequestException('Room id is missing');
     }
 
+    const mappedPoints: RoomResponse['productPoints'] = (data.productPoints ?? []).map((point) => {
+      const pointAny = point as unknown as Record<string, unknown>;
+      const productIdStr = point.productId?.toString();
+      const rawProduct = pointAny.productId as Record<string, unknown> | undefined;
+      const populated = typeof rawProduct === 'object' && rawProduct !== null
+        ? {
+            _id: String(rawProduct._id ?? ''),
+            id: String(rawProduct._id ?? ''),
+            name: String(rawProduct.name ?? ''),
+            price: Number(rawProduct.price ?? 0),
+            discount: Number(rawProduct.discount ?? 0),
+            stock: Number(rawProduct.stock ?? 0),
+            images: Array.isArray(rawProduct.images) ? (rawProduct.images as string[]) : [],
+            image: String(rawProduct.image ?? ''),
+            material: String(rawProduct.material ?? ''),
+            category: String(rawProduct.category ?? ''),
+            brand: String(rawProduct.brand ?? ''),
+            color: String(rawProduct.color ?? ''),
+            dimensions: String(rawProduct.dimensions ?? ''),
+            rating: Number(rawProduct.rating ?? 0),
+            status: String(rawProduct.status ?? ''),
+            description: String(rawProduct.description ?? ''),
+          }
+        : undefined;
+
+      return {
+        _id: pointAny._id?.toString?.() ?? undefined,
+        productId: productIdStr,
+        x: point.x,
+        y: point.y,
+        product: populated,
+      };
+    });
+
     return {
-      roomId,
+      _id: idStr,
+      id: idStr,
+      roomId: idStr,
+      kind: data.kind ?? ROOM_KIND_ROOM,
       userId: data.userId.toString(),
       imageUrl: data.imageUrl,
       imagePublicId: data.imagePublicId,
@@ -250,7 +338,7 @@ export class RoomsService {
       description: data.description,
       isPublic: data.isPublic ?? false,
       isFeatured: data.isFeatured ?? false,
-      productPoints: data.productPoints ?? [],
+      productPoints: mappedPoints,
       createdAt: data.createdAt,
       updatedAt: data.updatedAt,
     };

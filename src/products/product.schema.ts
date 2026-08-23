@@ -23,6 +23,12 @@ export enum ProductStatus {
   OutOfStock = 'OUT_OF_STOCK',
 }
 
+export type ProductDimensions = {
+  length?: string;
+  width?: string;
+  height?: string;
+};
+
 @Schema({
   collection: 'products',
   timestamps: true,
@@ -38,16 +44,31 @@ export class Product {
   @Prop({ type: Types.ObjectId, ref: 'User', index: true })
   supplierId?: Types.ObjectId;
 
+  @Prop({ trim: true, maxlength: 80 })
+  sku?: string;
+
   @Prop({ required: true, trim: true })
   name: string;
+
+  @Prop({ trim: true })
+  category: string;
+
+  @Prop({ trim: true })
+  brand?: string;
+
+  @Prop({ trim: true, maxlength: 2000 })
+  description?: string;
 
   @Prop({ required: true, min: 0 })
   price: number;
 
-  @Prop({ min: 0, default: 0, index: true })
+  @Prop({ min: 0, default: 0 })
+  discount: number;
+
+  @Prop({ min: 0, default: 0 })
   stock: number;
 
-  @Prop({ min: 0, default: 0, index: true })
+  @Prop({ min: 0, default: 0 })
   soldCount: number;
 
   @Prop({ type: String, enum: Object.values(ProductStatus), default: ProductStatus.Draft, index: true })
@@ -62,38 +83,52 @@ export class Product {
   @Prop({ default: false, index: true })
   isFeatured: boolean;
 
-  @Prop({ min: 0, max: 100, default: 0 })
-  discountPercent: number;
+  @Prop({ trim: true })
+  material?: string;
 
-  @Prop({ min: 0 })
-  salePrice?: number;
+  @Prop({ trim: true })
+  color?: string;
 
-  @Prop()
-  reviewedAt?: Date;
+  @Prop({ type: Object })
+  dimensions?: ProductDimensions;
 
-  @Prop({ type: Types.ObjectId, ref: 'User' })
-  reviewedBy?: Types.ObjectId;
+  @Prop({ trim: true })
+  weight?: string;
 
-  @Prop({ required: true, trim: true })
+  @Prop({ trim: true })
+  origin?: string;
+
+  @Prop({ trim: true })
+  warranty?: string;
+
+  @Prop({ min: 0, max: 5, default: 0 })
+  rating: number;
+
+  @Prop({ min: 0, default: 0 })
+  reviews: number;
+
+  @Prop({ trim: true })
   image: string;
 
-  @Prop({ type: [String], required: true, default: [], index: true })
-  styleTags: string[];
+  @Prop({ type: [String], default: [] })
+  images: string[];
 
-  @Prop({ required: true, trim: true, index: true })
-  category: string;
+  @Prop({ type: [String], default: [] })
+  tags: string[];
+
+  @Prop({ type: [String], default: [], index: true })
+  styleTags: string[];
 
   @Prop({
     type: String,
     enum: Object.values(EcommercePlatform),
-    required: true,
+    required: false,
     trim: true,
-    index: true,
   })
-  ecommercePlatform: EcommercePlatform;
+  ecommercePlatform?: EcommercePlatform;
 
-  @Prop({ required: true, trim: true })
-  productLink: string;
+  @Prop({ trim: true, maxlength: 1000 })
+  productLink?: string;
 }
 
 export const ProductSchema = SchemaFactory.createForClass(Product);
@@ -101,11 +136,16 @@ export const ProductSchema = SchemaFactory.createForClass(Product);
 ProductSchema.index({ price: 1 });
 ProductSchema.index({ category: 1, price: 1 });
 ProductSchema.index({ styleTags: 1, price: 1 });
+ProductSchema.index({ discount: 1 });
+ProductSchema.index({ rating: 1 });
+ProductSchema.index({ stock: 1 });
+ProductSchema.index({ soldCount: 1 });
 ProductSchema.index({
   name: 'text',
   category: 'text',
+  brand: 'text',
+  tags: 'text',
   styleTags: 'text',
-  ecommercePlatform: 'text',
 });
 
 ProductSchema.virtual('productId').get(function () {
@@ -122,6 +162,7 @@ ProductSchema.virtual('redirectUrl').get(function () {
 });
 
 ProductSchema.virtual('sourceDomain').get(function () {
+  if (!this.productLink) return null;
   try {
     return new URL(this.productLink).hostname.replace(/^www\./, '');
   } catch {

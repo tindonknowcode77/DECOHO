@@ -1,6 +1,21 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument, Types } from 'mongoose';
 
+/**
+ * Phân biệt document trong collection `rooms`:
+ *  - 'room'      : ảnh phòng cá nhân của user (POST /rooms/upload)
+ *  - 'moodboard' : Product Space / Moodboard công khai hoặc do admin tạo (POST /product-spaces/...)
+ *
+ * Dùng chung collection để không phải migrate data, nhưng discriminator
+ * này cho phép tách filter ở mọi read API.
+ */
+export const RoomKind = ['room', 'moodboard'] as const;
+export type RoomKindType = (typeof RoomKind)[number];
+
+/** String literal shortcuts for `RoomKindType` — handy when indexing via `RoomKind.Room` is wanted. */
+export const ROOM_KIND_ROOM: RoomKindType = 'room';
+export const ROOM_KIND_MOODBOARD: RoomKindType = 'moodboard';
+
 export type RoomDocument = HydratedDocument<Room>;
 
 export enum RoomType {
@@ -33,6 +48,15 @@ export const ProductPointSchema = SchemaFactory.createForClass(ProductPoint);
   versionKey: false,
 })
 export class Room {
+  @Prop({
+    type: String,
+    enum: Object.values(RoomKind),
+    required: true,
+    default: ROOM_KIND_ROOM,
+    index: true,
+  })
+  kind: RoomKindType;
+
   @Prop({ type: Types.ObjectId, ref: 'User', required: true, index: true })
   userId: Types.ObjectId;
 

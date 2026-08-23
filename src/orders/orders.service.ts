@@ -22,7 +22,9 @@ export class OrdersService {
     const items = dto.items.map((item) => {
       const product = products.find((value) => value.id === item.productId)!;
       if (product.stock < item.quantity) throw new BadRequestException(`${product.name} does not have enough stock`);
-      const unitPrice = product.salePrice ?? product.price;
+      const unitPrice = product.discount
+        ? Math.round(product.price * (1 - Math.min(100, product.discount) / 100))
+        : product.price;
       return { productId: product._id, supplierId: product.supplierId, name: product.name, image: product.image, unitPrice, quantity: item.quantity, lineTotal: unitPrice * item.quantity };
     });
     const subtotal = items.reduce((total, item) => total + item.lineTotal, 0);
