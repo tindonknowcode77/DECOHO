@@ -9,16 +9,27 @@ export class CommunityComment {
 }
 const CommunityCommentSchema = SchemaFactory.createForClass(CommunityComment);
 
+@Schema({ _id: false })
+export class CommunityMedia {
+  @Prop({ required: true }) url: string;
+  @Prop({ required: true }) publicId: string;
+  @Prop({ required: true, enum: ['image', 'video'] }) type: 'image' | 'video';
+  @Prop() thumbnailUrl?: string;
+  @Prop() width?: number;
+  @Prop() height?: number;
+  @Prop() duration?: number;
+  @Prop() format?: string;
+  @Prop() bytes?: number;
+}
+export const CommunityMediaSchema = SchemaFactory.createForClass(CommunityMedia);
+
 @Schema({ collection: 'community_posts', timestamps: true, versionKey: false })
 export class CommunityPost {
   @Prop({ type: Types.ObjectId, ref: 'User', required: true, index: true }) userId: Types.ObjectId;
   @Prop({ required: true, trim: true, maxlength: 3000 }) description: string;
   @Prop({ required: true, trim: true, maxlength: 60, index: true }) roomType: string;
   @Prop({ type: [String], default: [] }) hashtags: string[];
-  @Prop({ required: true }) beforeImageUrl: string;
-  @Prop({ required: true }) afterImageUrl: string;
-  @Prop() beforeImagePublicId?: string;
-  @Prop() afterImagePublicId?: string;
+  @Prop({ type: [CommunityMediaSchema], default: [] }) media: CommunityMedia[];
   @Prop({ type: [Types.ObjectId], ref: 'User', default: [] }) likedBy: Types.ObjectId[];
   @Prop({ type: [Types.ObjectId], ref: 'User', default: [] }) savedBy: Types.ObjectId[];
   @Prop({ type: [CommunityCommentSchema], default: [] }) comments: CommunityComment[];

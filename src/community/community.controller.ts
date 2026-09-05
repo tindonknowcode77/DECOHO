@@ -12,7 +12,7 @@ import {
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
-import { FileFieldsInterceptor } from '@nestjs/platform-express';
+import { FilesInterceptor } from '@nestjs/platform-express';
 import { ApiBearerAuth, ApiConsumes, ApiTags } from '@nestjs/swagger';
 import { Request } from 'express';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -20,7 +20,6 @@ import { CreateCommunityCommentDto, CreateCommunityPostDto } from './dto/communi
 import { CommunityService } from './community.service';
 
 type AuthRequest = Request & { user?: { sub?: string } };
-type CommunityFiles = { before?: Express.Multer.File[]; after?: Express.Multer.File[] };
 
 @ApiTags('Community')
 @Controller('community')
@@ -65,17 +64,16 @@ export class CommunityController {
   @ApiBearerAuth()
   @ApiConsumes('multipart/form-data')
   @UseInterceptors(
-    FileFieldsInterceptor([
-      { name: 'before', maxCount: 1 },
-      { name: 'after', maxCount: 1 },
-    ]),
+    FilesInterceptor('media', 10, {
+      limits: { fileSize: 50 * 1024 * 1024 },
+    }),
   )
   create(
     @Req() req: AuthRequest,
     @Body() dto: CreateCommunityPostDto,
-    @UploadedFiles() files: CommunityFiles,
+    @UploadedFiles() media: Express.Multer.File[],
   ) {
-    return this.service.create(this.user(req), dto, files ?? {});
+    return this.service.create(this.user(req), dto, media ?? []);
   }
 
   @Post('posts/:id/like')

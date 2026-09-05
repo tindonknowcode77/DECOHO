@@ -24,6 +24,7 @@ export type CloudinaryImage = {
   resourceType: string;
   bytes: number;
   originalFilename?: string;
+  thumbnailUrl?: string;
 };
 
 export type DeleteImageResult = {
@@ -51,10 +52,33 @@ export class CloudinaryService {
     this.validateImage(file);
 
     const result = file.buffer
-      ? await this.uploadFromBuffer(file.buffer, folder)
-      : await this.uploadFromPath(file.path, folder);
+      ? await this.uploadFromBuffer(file.buffer, folder, 'image')
+      : await this.uploadFromPath(file.path, folder, 'image');
 
     return this.toCloudinaryImage(result);
+  }
+
+  async uploadVideo(
+    file: Express.Multer.File,
+    folder = this.defaultFolder,
+  ): Promise<CloudinaryImage> {
+    this.validateVideo(file);
+
+    const result = file.buffer
+      ? await this.uploadFromBuffer(file.buffer, folder, 'video')
+      : await this.uploadFromPath(file.path, folder, 'video');
+
+    const image = this.toCloudinaryImage(result);
+    return { ...image, thumbnailUrl: this.generateVideoThumbnail(result.public_id) };
+  }
+
+  private generateVideoThumbnail(publicId: string): string {
+    return this.cloudinaryClient.url(publicId, {
+      secure: true,
+      resource_type: 'video',
+      format: 'jpg',
+      transformation: [{ width: 720, height: 720, crop: 'fill', gravity: 'auto' }],
+    });
   }
 
   async uploadModel(file: Express.Multer.File, folder: string): Promise<CloudinaryAsset> {
@@ -108,12 +132,13 @@ export class CloudinaryService {
   private uploadFromBuffer(
     buffer: Buffer,
     folder: string,
+    resourceType: 'image' | 'video' = 'image',
   ): Promise<UploadApiResponse> {
     return new Promise((resolve, reject) => {
       const uploadStream = this.cloudinaryClient.uploader.upload_stream(
         {
           folder,
-          resource_type: 'image',
+          resource_type: resourceType,
           unique_filename: true,
           overwrite: false,
         },
@@ -142,14 +167,15 @@ export class CloudinaryService {
   private async uploadFromPath(
     path: string | undefined,
     folder: string,
+    resourceType: 'image' | 'video' = 'image',
   ): Promise<UploadApiResponse> {
     if (!path) {
       throw new BadRequestException('Image file buffer or path is required');
     }
 
-    return this.cloudinaryClient.uploader.upload(path, {
+    return await this.cloudinaryClient.uploader.upload(path, {
       folder,
-      resource_type: 'image',
+      resource_type: resourceType,
       unique_filename: true,
       overwrite: false,
     });
@@ -168,6 +194,22 @@ export class CloudinaryService {
     const maxImageSizeInBytes = 10 * 1024 * 1024;
     if (file.size > maxImageSizeInBytes) {
       throw new BadRequestException('Image must be 10MB or smaller');
+    }
+  }
+
+  private validateVideo(file?: Express.Multer.File): void {
+    if (!file) {
+      throw new BadRequestException('Video file is required');
+    }
+
+    const allowedMimeTypes = ['video/mp4', 'video/webm', 'video/quicktime'];
+    if (!allowedMimeTypes.includes(file.mimetype)) {
+      throw new BadRequestException('Video must be MP4, WEBM, or MOV');
+    }
+
+    const maxVideoSizeInBytes = 50 * 1024 * 1024;
+    if (file.size > maxVideoSizeInBytes) {
+      throw new BadRequestException('Video must be 50MB or smaller');
     }
   }
 

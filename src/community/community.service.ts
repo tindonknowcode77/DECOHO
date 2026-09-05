@@ -5,6 +5,8 @@ import { CloudinaryService } from '../cloudinary/cloudinary.service';
 import { CreateCommunityCommentDto, CreateCommunityPostDto } from './dto/community.dto';
 import { CommunityFollow, CommunityFollowDocument, CommunityPost, CommunityPostDocument } from './community.schema';
 
+const MAX_MEDIA = 10;
+
 @Injectable()
 export class CommunityService {
   constructor(
@@ -15,7 +17,7 @@ export class CommunityService {
 
   async feed(tab = 'for-you', page = 1, limit = 10, userId?: string) {
     const filter: Record<string, unknown> = { isPublished: true };
-    if (tab === 'makeovers') filter.beforeImageUrl = { $exists: true };
+    if (tab === 'makeovers') filter['media.type'] = { $exists: true };
     if (tab === 'tips') filter.hashtags = /tips/i;
     if ((tab === 'following' || tab === 'saved') && !userId) throw new BadRequestException('Please sign in');
     if (tab === 'following' && userId) filter.userId = { $in: await this.followingIds(userId) };
@@ -31,13 +33,37 @@ export class CommunityService {
     return { items: items.map((item) => this.view(item, userId, followingIds)), total, page, limit, totalPages: Math.ceil(total / limit) };
   }
 
-  async create(userId: string, dto: CreateCommunityPostDto, files: { before?: Express.Multer.File[]; after?: Express.Multer.File[] }) {
+  async create(userId: string, dto: CreateCommunityPostDto, files: Express.Multer.File[]) {
     this.id(userId);
-    const before = files.before?.[0];
-    const after = files.after?.[0];
-    if (!before || !after) throw new BadRequestException('Before and after images are required');
-    const [a, b] = await Promise.all([this.cloudinary.uploadImage(before, 'decoho/community'), this.cloudinary.uploadImage(after, 'decoho/community')]);
-    return this.posts.create({ userId: new Types.ObjectId(userId), description: dto.description.trim(), roomType: dto.roomType.trim(), hashtags: (dto.hashtags ?? []).map((x) => x.replace(/^#/, '').trim()).filter(Boolean), beforeImageUrl: a.secureUrl, afterImageUrl: b.secureUrl, beforeImagePublicId: a.publicId, afterImagePublicId: b.publicId });
+    if (!files?.length) throw new BadRequestException('At least one image or video is required');
+    if (files.length > MAX_MEDIA) throw new BadRequestException(`Maximum ${MAX_MEDIA} media files allowed`);
+
+    const uploaded = await Promise.all(
+      files.map(async (file) => {
+        const isVideo = file.mimetype.startsWith('video/');
+        const result = isVideo
+          ? await this.cloudinary.uploadVideo(file, 'decoho/community')
+          : await this.cloudinary.uploadImage(file, 'decoho/community');
+        return {
+          url: result.secureUrl,
+          publicId: result.publicId,
+          type: isVideo ? ('video' as const) : ('image' as const),
+          thumbnailUrl: result.thumbnailUrl ?? result.secureUrl,
+          width: result.width,
+          height: result.height,
+          format: result.format,
+          bytes: result.bytes,
+        };
+      }),
+    );
+
+    return this.posts.create({
+      userId: new Types.ObjectId(userId),
+      description: dto.description.trim(),
+      roomType: dto.roomType.trim(),
+      hashtags: (dto.hashtags ?? []).map((x) => x.replace(/^#/, '').trim()).filter(Boolean),
+      media: uploaded,
+    });
   }
 
   toggleLike(userId: string, postId: string) { return this.toggle(postId, userId, 'likedBy'); }
@@ -63,7 +89,15 @@ export class CommunityService {
   async getFollowingIds(userId: string) { return { userIds: (await this.followingIds(userId)).map(String) }; }
 
   async creators() {
-    return this.posts.aggregate([{ $match: { isPublished: true } }, { $group: { _id: '$userId', posts: { $sum: 1 }, likes: { $sum: { $size: '$likedBy' } } } }, { $sort: { likes: -1, posts: -1 } }, { $limit: 8 }, { $lookup: { from: 'users', localField: '_id', foreignField: '_id', as: 'user' } }, { $unwind: '$user' }, { $project: { _id: 0, userId: '$_id', fullName: '$user.fullName', avatar: '$user.avatar', posts: 1, likes: 1 } }]).exec();
+    return this.posts.aggregate([
+      { $match: { isPublished: true } },
+      { $group: { _id: '$userId', posts: { $sum: 1 }, likes: { $sum: { $size: '$likedBy' } } } },
+      { $sort: { likes: -1, posts: -1 } },
+      { $limit: 8 },
+      { $lookup: { from: 'users', localField: '_id', foreignField: '_id', as: 'user' } },
+      { $unwind: '$user' },
+      { $project: { _id: 0, userId: '$_id', fullName: '$user.fullName', avatar: '$user.avatar', posts: 1, likes: 1 } },
+    ]).exec();
   }
 
   private followingIds(userId: string): Promise<Types.ObjectId[]> {
@@ -84,7 +118,16 @@ export class CommunityService {
     const likes = (item.likedBy as Types.ObjectId[] | undefined) ?? [];
     const saves = (item.savedBy as Types.ObjectId[] | undefined) ?? [];
     const author = item.userId as { _id?: Types.ObjectId } | undefined;
-    return { ...item, userId: author ? { ...author, following: author._id ? followed.has(String(author._id)) : false } : author, likeCount: likes.length, commentCount: ((item.comments as unknown[] | undefined) ?? []).length, liked: userId ? likes.some((id) => id.toString() === userId) : false, saved: userId ? saves.some((id) => id.toString() === userId) : false, likedBy: undefined, savedBy: undefined };
+    return {
+      ...item,
+      userId: author ? { ...author, following: author._id ? followed.has(String(author._id)) : false } : author,
+      likeCount: likes.length,
+      commentCount: ((item.comments as unknown[] | undefined) ?? []).length,
+      liked: userId ? likes.some((id) => id.toString() === userId) : false,
+      saved: userId ? saves.some((id) => id.toString() === userId) : false,
+      likedBy: undefined,
+      savedBy: undefined,
+    };
   }
 
   private id(id: string) { if (!Types.ObjectId.isValid(id)) throw new BadRequestException('Invalid id'); }
