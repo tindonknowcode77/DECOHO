@@ -16,7 +16,7 @@ import { Request } from 'express';
 import multer from 'multer';
 import { CallHandler, ExecutionContext, mixin, NestInterceptor } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { CreateCommunityCommentDto, CreateCommunityPostDto } from './dto/community.dto';
+import { CreateCommunityCommentDto, CreateCommunityPostDto, ReactCommentDto, ReactPostDto } from './dto/community.dto';
 import { CommunityService } from './community.service';
 
 type AuthRequest = Request & { user?: { sub?: string } };
@@ -125,18 +125,57 @@ export class CommunityController {
     return this.service.create(this.user(req), dto, files);
   }
 
-  @Post('posts/:id/like')
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
-  like(@Req() req: AuthRequest, @Param('id') id: string) {
-    return this.service.toggleLike(this.user(req), id);
+  @Get('search')
+  search(
+    @Query('q') q: string,
+    @Query('page', new ParseIntPipe({ optional: true })) page = 1,
+    @Query('limit', new ParseIntPipe({ optional: true })) limit = 10,
+    @Req() req: AuthRequest,
+  ) {
+    return this.service.search(q, page, Math.min(limit, 30), this.user(req));
   }
 
-  @Post('posts/:id/save')
+  @Get('posts/:id')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  save(@Req() req: AuthRequest, @Param('id') id: string) {
-    return this.service.toggleSave(this.user(req), id);
+  getPost(@Req() req: AuthRequest, @Param('id') id: string) {
+    return this.service.getById(id, this.user(req));
+  }
+
+  @Get('posts/:id/comments')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  getComments(
+    @Req() req: AuthRequest,
+    @Param('id') id: string,
+    @Query('parentId') parentId: string | undefined,
+    @Query('page', new ParseIntPipe({ optional: true })) page = 1,
+    @Query('limit', new ParseIntPipe({ optional: true })) limit = 20,
+  ) {
+    return this.service.getComments(id, this.user(req), parentId, page, Math.min(limit, 50));
+  }
+
+  @Post('posts/:id/react')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  react(
+    @Req() req: AuthRequest,
+    @Param('id') id: string,
+    @Body() dto: ReactPostDto,
+  ) {
+    return this.service.react(this.user(req), id, dto.type);
+  }
+
+  @Post('posts/:id/comments/:commentId/react')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  reactComment(
+    @Req() req: AuthRequest,
+    @Param('id') id: string,
+    @Param('commentId') commentId: string,
+    @Body() dto: ReactCommentDto,
+  ) {
+    return this.service.reactComment(this.user(req), id, commentId, dto.type);
   }
 
   @Post('posts/:id/comments')
@@ -144,6 +183,17 @@ export class CommunityController {
   @ApiBearerAuth()
   comment(@Req() req: AuthRequest, @Param('id') id: string, @Body() dto: CreateCommunityCommentDto) {
     return this.service.comment(this.user(req), id, dto);
+  }
+
+  @Post('posts/:id/comments/:commentId/like')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  likeComment(
+    @Req() req: AuthRequest,
+    @Param('id') id: string,
+    @Param('commentId') commentId: string,
+  ) {
+    return this.service.toggleCommentLike(this.user(req), id, commentId);
   }
 
   @Post('users/:id/follow')
