@@ -55,4 +55,25 @@ describe('Moodboard legacy IDs', () => {
     } as never);
     await expect(service.getPublicProductSpace('missing')).rejects.toBeInstanceOf(NotFoundException);
   });
+
+  it('updates only image metadata for a legacy board and preserves product points', async () => {
+    const room = { _id: 'MB-PG-001', productPoints: [], isPublic: false };
+    jest.spyOn(rooms.collection, 'aggregate').mockReturnValue({ toArray: async () => [room] } as never);
+    const update = jest.spyOn(rooms.collection, 'updateOne').mockResolvedValue({ matchedCount: 1 } as never);
+    const uploadImage = jest.fn().mockResolvedValue({ secureUrl: 'https://example.org/new.jpg', publicId: 'new-image', width: 100, height: 80, bytes: 500, format: 'jpg' });
+    const imageService = new RoomsService(rooms as unknown as Model<RoomDocument>, products as unknown as Model<ProductDocument>, { uploadImage } as unknown as CloudinaryService);
+    await imageService.updateProductSpaceImage('MB-PG-001', {} as Express.Multer.File);
+    expect(update.mock.calls[0][0]).toEqual({ _id: 'MB-PG-001', kind: 'moodboard' });
+    expect(update.mock.calls[0][1]).toMatchObject({ $set: { imageUrl: 'https://example.org/new.jpg' } });
+    expect(update.mock.calls[0][1]).not.toHaveProperty('$set.productPoints');
+    expect(update.mock.calls[0][1]).not.toHaveProperty('$set.isPublic');
+  });
+
+  it('does not upload an image for a missing board', async () => {
+    jest.spyOn(rooms.collection, 'aggregate').mockReturnValue({ toArray: async () => [] } as never);
+    const uploadImage = jest.fn();
+    const imageService = new RoomsService(rooms as unknown as Model<RoomDocument>, products as unknown as Model<ProductDocument>, { uploadImage } as unknown as CloudinaryService);
+    await expect(imageService.updateProductSpaceImage('missing', {} as Express.Multer.File)).rejects.toBeInstanceOf(NotFoundException);
+    expect(uploadImage).not.toHaveBeenCalled();
+  });
 });

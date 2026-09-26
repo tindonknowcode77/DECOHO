@@ -76,6 +76,17 @@ export class ProductSpacesController {
   @ApiOperation({ summary: 'Admin: update title, visibility or featured state' })
   update(@Param('id') id:string, @Body() dto:UpdateProductSpaceDto) { return this.roomsService.updateProductSpace(id,dto); }
 
+  @Patch('admin/:id/image')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN)
+  @ApiBearerAuth()
+  @ApiConsumes('multipart/form-data')
+  @UseInterceptors(FileInterceptor('image', { limits: { fileSize: 10 * 1024 * 1024 } }))
+  @ApiOperation({ summary: 'Admin: replace a moodboard image, preserving product points' })
+  updateImage(@Param('id') id: string, @UploadedFile() image: Express.Multer.File) {
+    return this.roomsService.updateProductSpaceImage(id, image);
+  }
+
   @Post('admin/:id/points')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN)

@@ -227,6 +227,35 @@ export class RoomsService {
     return room;
   }
 
+  async updateProductSpaceImage(roomId: string, file: Express.Multer.File) {
+    if (!roomId || roomId.length > 128) throw new BadRequestException('Invalid moodboard id');
+    const ids: Array<string | Types.ObjectId> = [roomId];
+    if (Types.ObjectId.isValid(roomId)) ids.push(new Types.ObjectId(roomId));
+    // Preserve legacy string IDs and do not hydrate imported product references.
+    const [room] = await this.roomModel.aggregate([
+      { $match: { _id: { $in: ids }, kind: ROOM_KIND_MOODBOARD } },
+      { $limit: 1 },
+    ]).exec();
+    if (!room) throw new NotFoundException('Product Space not found');
+    const uploaded = await this.cloudinaryService.uploadImage(file, this.roomImagesFolder);
+    const result = await this.roomModel.collection.updateOne(
+      { _id: room._id, kind: ROOM_KIND_MOODBOARD },
+      { $set: {
+        imageUrl: uploaded.secureUrl,
+        imagePublicId: uploaded.publicId,
+        imageWidth: uploaded.width,
+        imageHeight: uploaded.height,
+        imageFormat: uploaded.format,
+        imageBytes: uploaded.bytes,
+        updatedAt: new Date(),
+      } },
+    );
+    if (!result.matchedCount) throw new NotFoundException('Product Space not found');
+    const [updated] = await this.readProductSpaces({ _id: room._id, kind: ROOM_KIND_MOODBOARD }, { createdAt: -1 });
+    if (!updated) throw new NotFoundException('Product Space not found');
+    return updated;
+  }
+
   async addProductPoint(roomId: string, dto: ProductPointDto) {
     this.assertValidObjectId(roomId);
     const product = await this.productModel.exists({ _id: new Types.ObjectId(dto.productId) });
