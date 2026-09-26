@@ -20,19 +20,12 @@ import { CreateCommunityCommentDto, CreateCommunityPostDto, ReactCommentDto, Rea
 import { CommunityService } from './community.service';
 
 type AuthRequest = Request & { user?: { sub?: string } };
-type MulterFile = Express.Multer.File;
-type MulterOptions = multer.Options;
 
 /**
  * Custom interceptor — chấp nhận cả field 'files' và 'media'.
  * FE gửi 'files', BE cũ dùng 'media'. Flatten thành array và giới hạn 10 file.
  */
 
-function communityMulterOptions(): MulterOptions {
-  return {
-    limits: { fileSize: 50 * 1024 * 1024 },
-  };
-}
 
 export function FlexibleFilesInterceptor() {
   class FlexibleFilesInterceptorHost implements NestInterceptor {
@@ -164,6 +157,13 @@ export class CommunityController {
     @Body() dto: ReactPostDto,
   ) {
     return this.service.react(this.user(req), id, dto.type);
+  }
+
+  @Post('posts/:id/save')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  save(@Req() req: AuthRequest, @Param('id') id: string) {
+    return this.service.toggle(id, this.user(req), 'savedBy');
   }
 
   @Post('posts/:id/comments/:commentId/react')

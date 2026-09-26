@@ -16,6 +16,8 @@ export class CommunityService {
   ) {}
 
   async feed(tab = 'for-you', page = 1, limit = 10, userId?: string) {
+    page = Math.max(1, page);
+    limit = Math.max(1, Math.min(30, limit));
     const filter: Record<string, unknown> = { isPublished: true };
     if (tab === 'makeovers') filter['media.type'] = { $exists: true };
     if (tab === 'tips') filter.hashtags = /tips/i;
@@ -23,7 +25,6 @@ export class CommunityService {
     if (tab === 'following' && userId) filter.userId = { $in: await this.followingIds(userId) };
     if (tab === 'saved' && userId) filter.savedBy = new Types.ObjectId(userId);
 
-    const sort = tab === 'trending' ? { 'reactions._id': -1 as const, createdAt: -1 as const } : { createdAt: -1 as const };
     const [items, total, followed] = await Promise.all([
       this.posts.find(filter).populate('userId', 'fullName avatar businessAddress preferences').populate('comments.userId', 'fullName avatar').sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit).lean().exec(),
       this.posts.countDocuments(filter),
@@ -35,8 +36,15 @@ export class CommunityService {
 
   async create(userId: string, dto: CreateCommunityPostDto, files: Express.Multer.File[]) {
     this.id(userId);
+    if (!dto.description?.trim() || !dto.roomType?.trim()) throw new BadRequestException('Description and room type are required');
     if (!files?.length) throw new BadRequestException('At least one image or video is required');
     if (files.length > MAX_MEDIA) throw new BadRequestException(`Maximum ${MAX_MEDIA} media files allowed`);
+    const allowed = ['image/jpeg', 'image/png', 'image/webp', 'video/mp4', 'video/webm', 'video/quicktime'];
+    for (const file of files) {
+      if (!allowed.includes(file.mimetype)) throw new BadRequestException('Unsupported media type');
+      const maxBytes = (file.mimetype.startsWith('video/') ? 50 : 10) * 1024 * 1024;
+      if (file.size > maxBytes) throw new BadRequestException('Media file is too large');
+    }
 
     const uploaded = await Promise.all(
       files.map(async (file) => {
@@ -57,13 +65,16 @@ export class CommunityService {
       }),
     );
 
-    return this.posts.create({
+    const post = await this.posts.create({
       userId: new Types.ObjectId(userId),
       description: dto.description.trim(),
       roomType: dto.roomType.trim(),
       hashtags: (dto.hashtags ?? []).map((x) => x.replace(/^#/, '').trim()).filter(Boolean),
       media: uploaded,
     });
+
+    // Return the same populated shape as the feed before the UI inserts the post.
+    return this.getById(String(post._id), userId);
   }
 
   react(userId: string, postId: string, type: 'like' | 'love' | 'haha' | 'wow' | 'sad' | 'angry') {
@@ -103,17 +114,15 @@ export class CommunityService {
 
   private async reactionSummary(postId: string, commentId: string | null, userId: string, currentType: 'like' | 'love' | 'haha' | 'wow' | 'sad' | 'angry' | null) {
     const projection = commentId
-      ? { $reduce: { input: '$comments', as: 'c', initialValue: { items: [] }, in: { $cond: [{ $eq: ['$$c._id', { $toObjectId: commentId }] }, { items: '$$c.reactions' }, '$$value'] } } }
-      : '$reactions';
+      ? { $reduce: { input: { $ifNull: ['$comments', []] }, initialValue: [], in: { $cond: [{ $eq: ['$$this._id', new Types.ObjectId(commentId)] }, { $ifNull: ['$$this.reactions', []] }, '$$value'] } } }
+      : { $ifNull: ['$reactions', []] };
     const agg = await this.posts.aggregate([
       { $match: { _id: new Types.ObjectId(postId) } },
       { $project: { items: projection } },
     ]).exec();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const items: { type: string; userId: Types.ObjectId }[] = (((agg[0] as any)?.items?.items) ?? (agg[0] as any)?.items ?? []) as { type: string; userId: Types.ObjectId }[];
+    const items: { type: string; userId: Types.ObjectId }[] = Array.isArray(agg[0]?.items) ? agg[0].items : [];
     const counts: Record<string, number> = {};
     items.forEach((r) => { counts[r.type] = (counts[r.type] ?? 0) + 1; });
-    const my = items.find((r) => r.userId.toString() === userId);
     return {
       active: currentType !== null,
       myType: currentType,
@@ -124,6 +133,7 @@ export class CommunityService {
 
   async comment(userId: string, postId: string, dto: CreateCommunityCommentDto) {
     this.id(userId); this.id(postId);
+    if (!dto.content?.trim()) throw new BadRequestException('Comment content is required');
     if (dto.parentId && !Types.ObjectId.isValid(dto.parentId)) throw new BadRequestException('Invalid parent comment id');
     const userObjectId = new Types.ObjectId(userId);
     const payload: Record<string, unknown> = { userId: userObjectId, content: dto.content.trim() };
@@ -134,7 +144,7 @@ export class CommunityService {
     }
     const post = await this.posts.findByIdAndUpdate(postId, { $push: { comments: payload } }, { new: true })
       .populate('comments.userId', 'fullName avatar')
-      .populate('comments.parentId', '_id')
+      .lean()
       .exec();
     if (!post) throw new NotFoundException('Community post not found');
     // bump replyCount của parent
@@ -154,7 +164,6 @@ export class CommunityService {
     const post = await this.posts.findOne({ _id: postId, isPublished: true })
       .populate('userId', 'fullName avatar businessAddress preferences')
       .populate('comments.userId', 'fullName avatar')
-      .populate('comments.parentId', '_id')
       .lean()
       .exec();
     if (!post) throw new NotFoundException('Community post not found');
@@ -163,12 +172,14 @@ export class CommunityService {
   }
 
   async getComments(postId: string, userId: string | undefined, parentId: string | undefined, page: number, limit: number) {
+    page = Math.max(1, page);
+    limit = Math.max(1, Math.min(50, limit));
     this.id(postId);
     if (parentId) this.id(parentId);
     const matchParent = parentId ? new Types.ObjectId(parentId) : null;
     const filtered = await this.posts.aggregate([
       { $match: { _id: new Types.ObjectId(postId), isPublished: true } },
-      { $project: { comments: { $filter: { input: '$comments', as: 'c', cond: matchParent ? { $eq: ['$$c.parentId', matchParent] } : { $eq: [{ $ifNull: ['$$c.parentId', null] }, null] } } } } },
+      { $project: { replySource: { $ifNull: ['$comments', []] }, comments: { $filter: { input: { $ifNull: ['$comments', []] }, as: 'c', cond: matchParent ? { $eq: ['$$c.parentId', matchParent] } : { $eq: [{ $ifNull: ['$$c.parentId', null] }, null] } } } } },
       { $unwind: { path: '$comments', preserveNullAndEmptyArrays: false } },
       { $sort: { 'comments.createdAt': -1 } },
       {
@@ -176,6 +187,9 @@ export class CommunityService {
           items: [
             { $skip: (page - 1) * limit },
             { $limit: limit },
+            // Older requests may have saved a reply before failing to update its counter.
+            { $set: { 'comments.replyCount': { $size: { $filter: { input: '$replySource', as: 'reply', cond: { $eq: ['$$reply.parentId', '$comments._id'] } } } } } },
+            { $unset: 'replySource' },
             { $lookup: { from: 'users', localField: 'comments.userId', foreignField: '_id', as: 'comments.userId' } },
             { $unwind: { path: '$comments.userId', preserveNullAndEmptyArrays: true } },
           ],
@@ -243,7 +257,14 @@ export class CommunityService {
   async creators() {
     return this.posts.aggregate([
       { $match: { isPublished: true } },
-      { $group: { _id: '$userId', posts: { $sum: 1 }, likes: { $sum: { $size: '$reactions' } } } },
+      {
+        $group: {
+          _id: '$userId',
+          posts: { $sum: 1 },
+          // Aggregation does not apply schema defaults to older documents.
+          likes: { $sum: { $size: { $cond: [{ $isArray: '$reactions' }, '$reactions', []] } } },
+        },
+      },
       { $sort: { likes: -1, posts: -1 } },
       { $limit: 8 },
       { $lookup: { from: 'users', localField: '_id', foreignField: '_id', as: 'user' } },
@@ -257,13 +278,14 @@ export class CommunityService {
     return this.follows.find({ followerId: new Types.ObjectId(userId) }).distinct('followingId').exec() as Promise<Types.ObjectId[]>;
   }
 
-  private async toggle(postId: string, userId: string, field: 'likedBy' | 'savedBy') {
+  async toggle(postId: string, userId: string, field: 'likedBy' | 'savedBy') {
     this.id(postId); this.id(userId);
     const post = await this.posts.findById(postId).exec();
     if (!post) throw new NotFoundException('Community post not found');
-    const exists = post[field].some((id) => id.toString() === userId);
+    const entries = post[field] ?? [];
+    const exists = entries.some((id) => id.toString() === userId);
     await this.posts.updateOne({ _id: postId }, exists ? { $pull: { [field]: new Types.ObjectId(userId) } } : { $addToSet: { [field]: new Types.ObjectId(userId) } }).exec();
-    return { active: !exists, count: post[field].length + (exists ? -1 : 1) };
+    return { active: !exists, count: entries.length + (exists ? -1 : 1) };
   }
 
   private view(item: Record<string, unknown>, userId?: string, followed = new Set<string>()) {

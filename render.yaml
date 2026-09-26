@@ -11,6 +11,8 @@ services:
         value: production
       - key: API_PREFIX
         value: api
+      - key: ENABLE_USER_MOODBOARD_CREATION
+        value: "false"
       - key: CORS_ORIGIN
         value: https://decoho-fe.vercel.app
       - key: MONGODB_URI

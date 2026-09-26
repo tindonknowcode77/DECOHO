@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Req, UnauthorizedException, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
+import { Body, Controller, Delete, ForbiddenException, Get, Param, Patch, Post, Req, UnauthorizedException, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiBearerAuth, ApiConsumes, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Request } from 'express';
@@ -40,6 +40,9 @@ export class ProductSpacesController {
   @UseInterceptors(FileInterceptor('image'))
   @ApiOperation({ summary: 'Create a personal Moodboard from a room image' })
   uploadPersonal(@Req() request: AdminRequest, @Body() dto: CreateProductSpaceDto, @UploadedFile() image: Express.Multer.File) {
+    if (process.env.ENABLE_USER_MOODBOARD_CREATION !== 'true') {
+      throw new ForbiddenException('User moodboard creation is currently disabled');
+    }
     const userId = request.user?.sub;
     if (!userId) throw new UnauthorizedException('Authenticated user id is missing');
     dto.isFeatured = false;

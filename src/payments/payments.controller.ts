@@ -1,3 +1,4 @@
+import * as crypto from 'node:crypto';
 import { Body, Controller, Get, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Request } from 'express';
@@ -34,7 +35,6 @@ export class PaymentsController {
     const vnpUrl = process.env.VNPAY_URL ?? 'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html';
     const vnpTmnCode = process.env.VNPAY_TMN_CODE ?? 'TESTCODE';
     const vnpHashSecret = process.env.VNPAY_HASH_SECRET ?? 'SECRET';
-    const vnpApiUrl = process.env.VNPAY_API_URL ?? 'https://sandbox.vnpayment.vn/merchant_webapi/merchant/request';
     
     const orderInfo = `Thanh toan don hang ${orderId}`;
     const createDate = new Date().toISOString().replace(/[-:T]/g, '').slice(0, 14);
@@ -61,7 +61,6 @@ export class PaymentsController {
       .map((key) => `${key}=${encodeURIComponent(vnpParams[key])}`)
       .join('&');
 
-    const crypto = require('crypto');
     const secureHash = crypto
       .createHmac('sha512', vnpHashSecret)
       .update(queryString)
@@ -94,7 +93,6 @@ export class PaymentsController {
 
     const rawSignature = `accessKey=${momoAccessKey}&amount=${amount}&extraData=${extraData}&orderId=${orderId}&orderInfo=${orderInfo}&partnerCode=${momoPartnerCode}&requestId=${requestId}&requestType=${requestType}`;
 
-    const crypto = require('crypto');
     const signature = crypto
       .createHmac('sha256', momoSecretKey)
       .update(rawSignature)

@@ -9,7 +9,8 @@ export type CommunityPostDocument = HydratedDocument<CommunityPost>;
 export class CommunityComment {
   @Prop({ type: Types.ObjectId, ref: 'User', required: true, index: true }) userId: Types.ObjectId;
   @Prop({ required: true, trim: true, maxlength: 1000 }) content: string;
-  @Prop({ type: Types.ObjectId, ref: 'CommunityComment', default: null, index: true }) parentId?: Types.ObjectId | null;
+  // References another embedded comment in this post, not a separate model.
+  @Prop({ type: Types.ObjectId, default: null, index: true }) parentId?: Types.ObjectId | null;
   @Prop({ type: [{ type: { type: String, enum: REACTIONS }, userId: { type: Types.ObjectId, ref: 'User' } }], default: [] }) reactions: { type: REACTION_TYPES; userId: Types.ObjectId }[];
   @Prop({ default: 0 }) replyCount: number;
 }

@@ -14,7 +14,6 @@ import {
   ROOM_KIND_ROOM,
   Room,
   RoomDocument,
-  RoomKind,
   RoomKindType,
   RoomType,
 } from './room.schema';
@@ -162,30 +161,51 @@ export class RoomsService {
   }
 
   async getProductSpaces(publicOnly = false) {
-    return this.roomModel
-      .find({ kind: ROOM_KIND_MOODBOARD, ...(publicOnly ? { isPublic: true } : {}) })
-      .sort({ isFeatured: -1, createdAt: -1 })
-      .populate('productPoints.productId', 'name price discount stock images image material category brand color dimensions rating status description')
-      .exec();
+    return this.readProductSpaces(
+      { kind: ROOM_KIND_MOODBOARD, ...(publicOnly ? { isPublic: true } : {}) },
+      { isFeatured: -1, createdAt: -1 },
+    );
   }
 
   async getUserProductSpaces(userId: string) {
     this.assertValidObjectId(userId);
-    return this.roomModel
-      .find({ ...this.buildOwnerFilter(userId), kind: ROOM_KIND_MOODBOARD })
-      .sort({ createdAt: -1 })
-      .populate('productPoints.productId', 'name price discount stock images image material category brand color dimensions rating status description')
-      .exec();
+    return this.readProductSpaces(
+      { ...this.buildOwnerFilter(userId), kind: ROOM_KIND_MOODBOARD },
+      { createdAt: -1 },
+    );
   }
 
   async getPublicProductSpace(roomId: string) {
-    this.assertValidObjectId(roomId);
-    const room = await this.roomModel
-      .findOne({ _id: new Types.ObjectId(roomId), kind: ROOM_KIND_MOODBOARD, isPublic: true })
-      .populate('productPoints.productId', 'name price discount stock images image material category brand color dimensions rating status description')
-      .exec();
+    if (!roomId || roomId.length > 128) {
+      throw new BadRequestException('Invalid moodboard id');
+    }
+    const ids: Array<string | Types.ObjectId> = [roomId];
+    if (Types.ObjectId.isValid(roomId)) ids.push(new Types.ObjectId(roomId));
+    const [room] = await this.readProductSpaces(
+      { _id: { $in: ids }, kind: ROOM_KIND_MOODBOARD, isPublic: true },
+      { createdAt: -1 },
+    );
     if (!room) throw new NotFoundException('Public Product Space not found');
     return room;
+  }
+
+  private async readProductSpaces(
+    filter: Record<string, unknown>,
+    sort: Record<string, 1 | -1>,
+  ) {
+    // Imported boards can have string IDs. Aggregation preserves those IDs
+    // instead of hydrating them through the ObjectId schema.
+    const rooms = await this.roomModel.aggregate([
+      { $match: filter },
+      { $sort: sort },
+    ]).exec();
+    const populateOptions = {
+      path: 'productPoints.productId',
+      select: 'name price discount stock images image material category brand color dimensions rating status description',
+      // Broken legacy references must not prevent the whole gallery loading.
+      skipInvalidIds: true,
+    };
+    return this.roomModel.populate(rooms, populateOptions);
   }
 
   async updateProductSpace(roomId: string, dto: UpdateProductSpaceDto) {
