@@ -18,6 +18,32 @@ describe('Moodboard legacy IDs', () => {
 
   afterEach(() => jest.restoreAllMocks());
 
+  it.each(['MB-PG-001', new Types.ObjectId()])('edits metadata and points for board %s', async (boardId) => {
+    const pointId = typeof boardId === 'string' ? 'MB-PG-001-PT01' : new Types.ObjectId();
+    const raw = { _id: boardId, productPoints: [{ _id: pointId }] };
+    jest.spyOn(rooms.collection, 'aggregate').mockReturnValue({ toArray: async () => [raw] } as never);
+    jest.spyOn(rooms, 'populate').mockImplementation(async docs => docs as never);
+    jest.spyOn(products, 'exists').mockResolvedValue({ _id: productId } as never);
+    const update = jest.spyOn(rooms.collection, 'updateOne').mockResolvedValue({ matchedCount: 1 } as never);
+    const dto = { productId: String(productId), x: 25, y: 50 };
+    await service.addProductPoint(String(boardId), dto);
+    expect(update.mock.calls[0][0]).toEqual({ _id: boardId, kind: 'moodboard' });
+    expect(update.mock.calls[0][1]).toMatchObject({ $push: { productPoints: { _id: expect.any(Types.ObjectId), productId, x: 25, y: 50 } } });
+    await service.updateProductPoint(String(boardId), String(pointId), dto);
+    expect(update.mock.calls[1][0]).toMatchObject({ _id: boardId, 'productPoints._id': pointId });
+    await service.deleteProductPoint(String(boardId), String(pointId));
+    expect(update.mock.calls[2][1]).toMatchObject({ $pull: { productPoints: { _id: pointId } } });
+    await service.updateProductSpace(String(boardId), { title: 'Updated' });
+    expect(update.mock.calls[3][1]).toMatchObject({ $set: { title: 'Updated' } });
+  });
+
+  it('rejects invalid coordinates without writing', async () => {
+    jest.spyOn(rooms.collection, 'aggregate').mockReturnValue({ toArray: async () => [{ _id: 'MB-PG-001' }] } as never);
+    const update = jest.spyOn(rooms.collection, 'updateOne');
+    await expect(service.addProductPoint('MB-PG-001', { productId: String(productId), x: 101, y: 0 })).rejects.toThrow('Point coordinates');
+    expect(update).not.toHaveBeenCalled();
+  });
+
   it('loads imported boards while populating valid products and ignoring broken references', async () => {
     jest.spyOn(rooms.collection, 'aggregate').mockReturnValue({
       toArray: async () => [{

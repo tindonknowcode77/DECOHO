@@ -208,23 +208,42 @@ export class RoomsService {
     return this.roomModel.populate(rooms, populateOptions);
   }
 
-  async updateProductSpace(roomId: string, dto: UpdateProductSpaceDto) {
-    this.assertValidObjectId(roomId);
-    if (dto.isFeatured) {
-      await this.roomModel.updateMany(
-        { _id: { $ne: new Types.ObjectId(roomId) }, kind: ROOM_KIND_MOODBOARD },
-        { $set: { isFeatured: false } },
-      ).exec();
-    }
-    const room = await this.roomModel
-      .findOneAndUpdate(
-        { _id: new Types.ObjectId(roomId), kind: ROOM_KIND_MOODBOARD },
-        { $set: dto },
-        { new: true, runValidators: true },
-      )
-      .exec();
+  private legacyIds(id: string) {
+    if (!id || id.length > 128) throw new BadRequestException('Invalid moodboard or point id');
+    return Types.ObjectId.isValid(id) ? [id, new Types.ObjectId(id)] : [id];
+  }
+
+  private async findEditableSpace(roomId: string) {
+    const [room] = await this.roomModel.aggregate([
+      { $match: { _id: { $in: this.legacyIds(roomId) }, kind: ROOM_KIND_MOODBOARD } },
+      { $limit: 1 },
+    ]).exec();
     if (!room) throw new NotFoundException('Product Space not found');
     return room;
+  }
+
+  private async editedSpace(roomId: string) {
+    const [room] = await this.readProductSpaces(
+      { _id: { $in: this.legacyIds(roomId) }, kind: ROOM_KIND_MOODBOARD }, { createdAt: -1 },
+    );
+    if (!room) throw new NotFoundException('Product Space not found');
+    return room;
+  }
+
+  async updateProductSpace(roomId: string, dto: UpdateProductSpaceDto) {
+    const room = await this.findEditableSpace(roomId);
+    if (dto.isFeatured) {
+      await this.roomModel.collection.updateMany(
+        { _id: { $ne: room._id }, kind: ROOM_KIND_MOODBOARD },
+        { $set: { isFeatured: false, updatedAt: new Date() } },
+      );
+    }
+    const result = await this.roomModel.collection.updateOne(
+      { _id: room._id, kind: ROOM_KIND_MOODBOARD },
+      { $set: { ...dto, updatedAt: new Date() } },
+    );
+    if (!result.matchedCount) throw new NotFoundException('Product Space not found');
+    return this.editedSpace(roomId);
   }
 
   async updateProductSpaceImage(roomId: string, file: Express.Multer.File) {
@@ -256,43 +275,50 @@ export class RoomsService {
     return updated;
   }
 
+  private async validatePoint(dto: ProductPointDto) {
+    this.assertValidObjectId(dto.productId);
+    if (![dto.x, dto.y].every(value => Number.isFinite(value) && value >= 0 && value <= 100)) {
+      throw new BadRequestException('Point coordinates must be between 0 and 100');
+    }
+    if (!await this.productModel.exists({ _id: new Types.ObjectId(dto.productId) })) {
+      throw new NotFoundException('Product not found');
+    }
+  }
+
   async addProductPoint(roomId: string, dto: ProductPointDto) {
-    this.assertValidObjectId(roomId);
-    const product = await this.productModel.exists({ _id: new Types.ObjectId(dto.productId) });
-    if (!product) throw new NotFoundException('Product not found');
-    const room = await this.roomModel
-      .findOneAndUpdate(
-        { _id: new Types.ObjectId(roomId), kind: ROOM_KIND_MOODBOARD },
-        { $push: { productPoints: { productId: new Types.ObjectId(dto.productId), x: dto.x, y: dto.y } } },
-        { new: true, runValidators: true },
-      )
-      .exec();
-    if (!room) throw new NotFoundException('Product Space not found');
-    return room;
+    const room = await this.findEditableSpace(roomId);
+    await this.validatePoint(dto);
+    const result = await this.roomModel.collection.updateOne(
+      { _id: room._id, kind: ROOM_KIND_MOODBOARD },
+      { $push: { productPoints: { _id: new Types.ObjectId(), productId: new Types.ObjectId(dto.productId), x: dto.x, y: dto.y } }, $set: { updatedAt: new Date() } } as unknown as Parameters<typeof this.roomModel.collection.updateOne>[1],
+    );
+    if (!result.matchedCount) throw new NotFoundException('Product Space not found');
+    return this.editedSpace(roomId);
   }
 
   async updateProductPoint(roomId: string, pointId: string, dto: ProductPointDto) {
-    this.assertValidObjectId(roomId); this.assertValidObjectId(pointId);
-    const product = await this.productModel.exists({ _id: new Types.ObjectId(dto.productId) });
-    if (!product) throw new NotFoundException('Product not found');
-    const room = await this.roomModel.findOneAndUpdate(
-      { _id: new Types.ObjectId(roomId), kind: ROOM_KIND_MOODBOARD, 'productPoints._id': new Types.ObjectId(pointId) },
-      { $set: { 'productPoints.$.productId': new Types.ObjectId(dto.productId), 'productPoints.$.x': dto.x, 'productPoints.$.y': dto.y } },
-      { new: true, runValidators: true },
-    ).exec();
-    if (!room) throw new NotFoundException('Product Space or product point not found');
-    return room;
+    const room = await this.findEditableSpace(roomId);
+    const point = (room.productPoints ?? []).find((p: { _id?: unknown }) => String(p._id) === pointId);
+    if (!point) throw new NotFoundException('Product point not found');
+    await this.validatePoint(dto);
+    const result = await this.roomModel.collection.updateOne(
+      { _id: room._id, kind: ROOM_KIND_MOODBOARD, 'productPoints._id': point._id },
+      { $set: { 'productPoints.$.productId': new Types.ObjectId(dto.productId), 'productPoints.$.x': dto.x, 'productPoints.$.y': dto.y, updatedAt: new Date() } },
+    );
+    if (!result.matchedCount) throw new NotFoundException('Product Space or product point not found');
+    return this.editedSpace(roomId);
   }
 
   async deleteProductPoint(roomId: string, pointId: string) {
-    this.assertValidObjectId(roomId); this.assertValidObjectId(pointId);
-    const room = await this.roomModel.findOneAndUpdate(
-      { _id: new Types.ObjectId(roomId), kind: ROOM_KIND_MOODBOARD, 'productPoints._id': new Types.ObjectId(pointId) },
-      { $pull: { productPoints: { _id: new Types.ObjectId(pointId) } } },
-      { new: true },
-    ).exec();
-    if (!room) throw new NotFoundException('Product Space or product point not found');
-    return room;
+    const room = await this.findEditableSpace(roomId);
+    const point = (room.productPoints ?? []).find((p: { _id?: unknown }) => String(p._id) === pointId);
+    if (!point) throw new NotFoundException('Product point not found');
+    const result = await this.roomModel.collection.updateOne(
+      { _id: room._id, kind: ROOM_KIND_MOODBOARD, 'productPoints._id': point._id },
+      { $pull: { productPoints: { _id: point._id } }, $set: { updatedAt: new Date() } } as unknown as Parameters<typeof this.roomModel.collection.updateOne>[1],
+    );
+    if (!result.matchedCount) throw new NotFoundException('Product Space or product point not found');
+    return this.editedSpace(roomId);
   }
 
   private async findOwnedRoom(
