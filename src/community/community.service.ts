@@ -15,6 +15,17 @@ export class CommunityService {
     private readonly cloudinary: CloudinaryService,
   ) {}
 
+  async deleteOwnPost(userId: string, postId: string) {
+    this.id(userId); this.id(postId);
+    // Ownership is part of the delete itself: no role or client-supplied author can bypass it.
+    const result = await this.posts.deleteOne({
+      _id: new Types.ObjectId(postId),
+      userId: new Types.ObjectId(userId),
+    }).exec();
+    if (!result.deletedCount) throw new NotFoundException('Post not found or you do not own this post');
+    return { deleted: true, postId };
+  }
+
   async feed(tab = 'for-you', page = 1, limit = 10, userId?: string) {
     page = Math.max(1, page);
     limit = Math.max(1, Math.min(30, limit));

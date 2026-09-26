@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   ParseIntPipe,
@@ -71,6 +72,13 @@ export function FlexibleFilesInterceptor() {
 @Controller('community')
 export class CommunityController {
   constructor(private readonly service: CommunityService) {}
+
+  @Delete('posts/:id')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  deletePost(@Req() req: AuthRequest, @Param('id') id: string) {
+    return this.service.deleteOwnPost(this.user(req), id);
+  }
 
   @Get('posts')
   posts(

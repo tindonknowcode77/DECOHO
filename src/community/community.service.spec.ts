@@ -3,6 +3,26 @@ import { CloudinaryService } from '../cloudinary/cloudinary.service';
 import { CommunityService } from './community.service';
 import { CommunityFollowDocument, CommunityPost, CommunityPostDocument, CommunityPostSchema } from './community.schema';
 
+describe('CommunityService.deleteOwnPost', () => {
+  it.each([true, false])('deletes only the matching owner (owns post: %s)', async ownsPost => {
+    const owner = new Types.ObjectId();
+    const caller = ownsPost ? owner : new Types.ObjectId();
+    const postId = new Types.ObjectId();
+    const deleteOne = jest.fn(filter => ({ exec: async () => ({ deletedCount: filter._id.equals(postId) && filter.userId.equals(owner) ? 1 : 0 }) }));
+    const service = new CommunityService({ deleteOne } as unknown as Model<CommunityPostDocument>, {} as Model<CommunityFollowDocument>, {} as CloudinaryService);
+    if (ownsPost) await expect(service.deleteOwnPost(String(caller), String(postId))).resolves.toEqual({ deleted: true, postId: String(postId) });
+    else await expect(service.deleteOwnPost(String(caller), String(postId))).rejects.toMatchObject({ status: 404 });
+    expect(deleteOne).toHaveBeenCalledWith({ _id: postId, userId: caller });
+  });
+
+  it('rejects invalid IDs without writing', async () => {
+    const deleteOne = jest.fn();
+    const service = new CommunityService({ deleteOne } as unknown as Model<CommunityPostDocument>, {} as Model<CommunityFollowDocument>, {} as CloudinaryService);
+    await expect(service.deleteOwnPost(String(new Types.ObjectId()), 'invalid')).rejects.toMatchObject({ status: 400 });
+    expect(deleteOne).not.toHaveBeenCalled();
+  });
+});
+
 describe('CommunityService.create', () => {
   it.each([
     { description: '   ', roomType: 'Living room', mimetype: 'image/jpeg', size: 1 },
