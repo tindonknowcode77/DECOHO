@@ -4,6 +4,8 @@ import {
   Delete,
   Get,
   Param,
+  Patch,
+  ParseBoolPipe,
   ParseIntPipe,
   Post,
   Query,
@@ -19,6 +21,9 @@ import { CallHandler, ExecutionContext, mixin, NestInterceptor } from '@nestjs/c
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CreateCommunityCommentDto, CreateCommunityPostDto, ReactCommentDto, ReactPostDto } from './dto/community.dto';
 import { CommunityService } from './community.service';
+import { Roles } from '../common/decorators/roles.decorator';
+import { Role } from '../common/enums/roles.enum';
+import { RolesGuard } from '../common/guards/roles.guard';
 
 type AuthRequest = Request & { user?: { sub?: string } };
 
@@ -72,6 +77,29 @@ export function FlexibleFilesInterceptor() {
 @Controller('community')
 export class CommunityController {
   constructor(private readonly service: CommunityService) {}
+
+  @Get('admin/posts')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN, Role.STAFF)
+  @ApiBearerAuth()
+  adminPosts(
+    @Query('q') q = '',
+    @Query('status') status = 'all',
+    @Query('page', new ParseIntPipe({ optional: true })) page = 1,
+  ) {
+    return this.service.adminPosts(q, status, page);
+  }
+
+  @Patch('admin/posts/:id/visibility')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN, Role.STAFF)
+  @ApiBearerAuth()
+  setVisibility(
+    @Param('id') id: string,
+    @Body('isPublished', new ParseBoolPipe()) isPublished: boolean,
+  ) {
+    return this.service.setVisibility(id, isPublished);
+  }
 
   @Delete('posts/:id')
   @UseGuards(JwtAuthGuard)

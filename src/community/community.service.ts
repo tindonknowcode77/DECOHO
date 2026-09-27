@@ -15,6 +15,38 @@ export class CommunityService {
     private readonly cloudinary: CloudinaryService,
   ) {}
 
+  async adminPosts(q = '', status = 'all', page = 1) {
+    if (!['all', 'published', 'hidden'].includes(status)) throw new BadRequestException('Invalid status');
+    page = Math.max(1, page);
+    const limit = 20;
+    const filter: Record<string, unknown> = {};
+    if (status !== 'all') filter.isPublished = status === 'published';
+    const term = q.trim().slice(0, 120);
+    if (term) {
+      const literal = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      filter.$or = ['description', 'roomType', 'hashtags'].map(key => ({ [key]: { $regex: literal, $options: 'i' } }));
+      if (Types.ObjectId.isValid(term)) (filter.$or as object[]).push({ _id: new Types.ObjectId(term) });
+    }
+    const [posts, total] = await Promise.all([
+      this.posts.find(filter).populate('userId', 'fullName avatar').sort({ createdAt: -1, _id: -1 }).skip((page - 1) * limit).limit(limit).lean().exec(),
+      this.posts.countDocuments(filter),
+    ]);
+    const items = posts.map(post => ({
+      _id: post._id, userId: post.userId, description: post.description,
+      roomType: post.roomType, hashtags: post.hashtags ?? [], media: post.media ?? [],
+      isPublished: post.isPublished, createdAt: (post as unknown as { createdAt: Date }).createdAt,
+      commentCount: post.comments?.length ?? 0, reactionCount: post.reactions?.length ?? 0,
+    }));
+    return { items, total, page, limit, totalPages: Math.ceil(total / limit) };
+  }
+
+  async setVisibility(postId: string, isPublished: boolean) {
+    this.id(postId);
+    const post = await this.posts.findByIdAndUpdate(postId, { $set: { isPublished } }, { new: true }).select('_id isPublished').lean().exec();
+    if (!post) throw new NotFoundException('Post not found');
+    return post;
+  }
+
   async deleteOwnPost(userId: string, postId: string) {
     this.id(userId); this.id(postId);
     // Ownership is part of the delete itself: no role or client-supplied author can bypass it.
