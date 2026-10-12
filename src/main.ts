@@ -13,6 +13,8 @@ async function bootstrap() {
     'http://127.0.0.1:3000',
     'http://127.0.0.1:3001',
     'https://decoho-fe.vercel.app',
+    'https://www.decoho.net',
+    'https://decoho.net',
   ];
   const configuredOrigins = (process.env.CORS_ORIGIN ?? '')
     .split(',')
