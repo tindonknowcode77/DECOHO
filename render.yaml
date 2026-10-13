@@ -14,7 +14,7 @@ services:
       - key: ENABLE_USER_MOODBOARD_CREATION
         value: "false"
       - key: CORS_ORIGIN
-        value: https://decoho-fe.vercel.app
+        value: https://decoho-fe.vercel.app,https://decoho.net,https://www.decoho.net
       - key: MONGODB_URI
         sync: false
       - key: JWT_ACCESS_SECRET
