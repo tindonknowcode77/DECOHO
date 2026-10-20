@@ -11,6 +11,7 @@ import { ProductPointDto } from './dto/product-point.dto';
 import { UpdateProductSpaceDto } from './dto/update-product-space.dto';
 import { ROOM_KIND_MOODBOARD } from './room.schema';
 import { RoomsService } from './rooms.service';
+import { DeleteProductSpacesDto } from './dto/delete-product-spaces.dto';
 
 type AdminRequest = Request & { user?: { sub?: string } };
 
@@ -18,6 +19,23 @@ type AdminRequest = Request & { user?: { sub?: string } };
 @Controller('product-spaces')
 export class ProductSpacesController {
   constructor(private readonly roomsService: RoomsService) {}
+
+  @Post('admin/bulk-delete')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Admin: delete up to 100 moodboards; preserve catalog products and media' })
+  deleteMany(@Body() dto: DeleteProductSpacesDto) {
+    return this.roomsService.deleteProductSpaces(dto.ids);
+  }
+
+  @Delete('admin/:id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN)
+  @ApiBearerAuth()
+  deleteOne(@Param('id') id: string) {
+    return this.roomsService.deleteProductSpaces([id]);
+  }
 
   @Get()
   @ApiOperation({ summary: 'List public Product Spaces, featured first' })

@@ -213,6 +213,21 @@ export class RoomsService {
     return Types.ObjectId.isValid(id) ? [id, new Types.ObjectId(id)] : [id];
   }
 
+  async deleteProductSpaces(ids: string[]) {
+    if (!Array.isArray(ids) || ids.length === 0 || ids.length > 100 ||
+      ids.some(id => typeof id !== 'string' || !id.trim() || id.length > 128)) {
+      throw new BadRequestException('Select between 1 and 100 valid moodboard ids');
+    }
+    const uniqueIds = [...new Set(ids)];
+    // Raw collection preserves legacy string IDs; always restrict deletion to moodboards.
+    const result = await this.roomModel.collection.deleteMany({
+      _id: { $in: uniqueIds.flatMap(id => this.legacyIds(id)) } as never,
+      kind: ROOM_KIND_MOODBOARD,
+    });
+    // Images may be shared by other moodboards. Do not delete shared cloud assets.
+    return { deletedCount: result.deletedCount };
+  }
+
   private async findEditableSpace(roomId: string) {
     const [room] = await this.roomModel.aggregate([
       { $match: { _id: { $in: this.legacyIds(roomId) }, kind: ROOM_KIND_MOODBOARD } },

@@ -1155,25 +1155,101 @@
       "value": "",
       "type": "string"
     },
-    { "key": "categoryId", "value": "", "type": "string" },
-    { "key": "brandId", "value": "", "type": "string" },
-    { "key": "supplierId", "value": "", "type": "string" },
-    { "key": "orderId", "value": "", "type": "string" },
-    { "key": "paymentId", "value": "", "type": "string" },
-    { "key": "promotionId", "value": "", "type": "string" },
-    { "key": "productSpaceId", "value": "", "type": "string" },
-    { "key": "pointId", "value": "", "type": "string" },
-    { "key": "showroomId", "value": "", "type": "string" },
-    { "key": "showroomItemId", "value": "", "type": "string" },
-    { "key": "detectionId", "value": "", "type": "string" },
-    { "key": "reviewId", "value": "", "type": "string" },
-    { "key": "reportId", "value": "", "type": "string" },
-    { "key": "ticketId", "value": "", "type": "string" },
-    { "key": "staffId", "value": "", "type": "string" },
-    { "key": "websiteContentId", "value": "", "type": "string" },
-    { "key": "communityPostId", "value": "", "type": "string" },
-    { "key": "communityCreatorId", "value": "", "type": "string" },
-    { "key": "googleCredential", "value": "", "type": "string" },
+    {
+      "key": "categoryId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "brandId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "supplierId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "orderId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "paymentId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "promotionId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "productSpaceId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "pointId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "showroomId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "showroomItemId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "detectionId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "reviewId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "reportId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "ticketId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "staffId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "websiteContentId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "communityPostId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "communityCreatorId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "googleCredential",
+      "value": "",
+      "type": "string"
+    },
     {
       "key": "style",
       "value": "Minimalist",
@@ -1183,6 +1259,18 @@
       "key": "budget",
       "value": "5000000",
       "type": "string"
+    },
+    {
+      "key": "moodboardDeleteId",
+      "value": "",
+      "type": "string",
+      "description": "ID of a disposable moodboard for single deletion."
+    },
+    {
+      "key": "moodboardDeleteIds",
+      "value": "[]",
+      "type": "string",
+      "description": "JSON array of 1-100 moodboard IDs for bulk deletion, e.g. [\"MB-TEST-01\",\"MB-TEST-02\"]."
     }
   ],
   "item": [
@@ -1257,19 +1345,7 @@
                 }
               }
             },
-            "url": {
-              "raw": "http://localhost:3000/api/auth/resend-token",
-              "host": [
-                "localhost"
-              ],
-              "path": [
-                "api",
-                "auth",
-                "resend-token"
-              ],
-              "protocol": "http",
-              "port": "3000"
-            },
+            "url": "{{baseUrl}}/auth/resend-token",
             "description": "Generate/send a new verification email link. If emailSent=false, configure Gmail SMTP or open verificationLink manually."
           },
           "event": [
@@ -1313,19 +1389,7 @@
                 }
               }
             },
-            "url": {
-              "raw": "http://localhost:3000/api/auth/verify-token",
-              "host": [
-                "localhost"
-              ],
-              "path": [
-                "api",
-                "auth",
-                "verify-token"
-              ],
-              "protocol": "http",
-              "port": "3000"
-            },
+            "url": "{{baseUrl}}/auth/verify-token",
             "description": "Verify user email using verificationToken from Register or Resend Token. You can also open verificationLink directly in the browser."
           }
         },
@@ -1337,24 +1401,7 @@
             },
             "method": "GET",
             "header": [],
-            "url": {
-              "raw": "http://localhost:3000/api/verify-email?token={{verificationToken}}",
-              "protocol": "http",
-              "host": [
-                "localhost"
-              ],
-              "port": "3000",
-              "path": [
-                "api",
-                "verify-email"
-              ],
-              "query": [
-                {
-                  "key": "token",
-                  "value": "{{verificationToken}}"
-                }
-              ]
-            },
+            "url": "{{baseUrl}}/verify-email?token={{verificationToken}}",
             "description": "Mirrors Gmail click flow. Use this after Register when emailSent=false or when testing manually."
           }
         },
@@ -1380,19 +1427,7 @@
                 }
               }
             },
-            "url": {
-              "raw": "http://localhost:3000/api/auth/login",
-              "host": [
-                "localhost"
-              ],
-              "path": [
-                "api",
-                "auth",
-                "login"
-              ],
-              "protocol": "http",
-              "port": "3000"
-            },
+            "url": "{{baseUrl}}/auth/login",
             "description": "Login after email verification succeeds. This request stores accessToken, refreshToken, and userId automatically. Auth user response is minimal and does not include preferences."
           },
           "event": [
@@ -1437,19 +1472,7 @@
                 }
               }
             },
-            "url": {
-              "raw": "http://localhost:3000/api/auth/login",
-              "host": [
-                "localhost"
-              ],
-              "path": [
-                "api",
-                "auth",
-                "login"
-              ],
-              "protocol": "http",
-              "port": "3000"
-            },
+            "url": "{{baseUrl}}/auth/login",
             "description": "Login with an ADMIN account before calling POST /products or GET /admin/dashboard. This stores adminAccessToken and does not overwrite userAccessToken used by Rooms."
           },
           "event": [
@@ -1499,19 +1522,7 @@
                 }
               }
             },
-            "url": {
-              "raw": "http://localhost:3000/api/auth/refresh",
-              "host": [
-                "localhost"
-              ],
-              "path": [
-                "api",
-                "auth",
-                "refresh"
-              ],
-              "protocol": "http",
-              "port": "3000"
-            },
+            "url": "{{baseUrl}}/auth/refresh",
             "description": "Rotate refresh token and receive a new access token. Sends refresh token as Bearer token and body for compatibility."
           },
           "event": [
@@ -1538,19 +1549,7 @@
           "request": {
             "method": "GET",
             "header": [],
-            "url": {
-              "raw": "http://localhost:3000/api/auth/verify-token",
-              "host": [
-                "localhost"
-              ],
-              "path": [
-                "api",
-                "auth",
-                "verify-token"
-              ],
-              "protocol": "http",
-              "port": "3000"
-            },
+            "url": "{{baseUrl}}/auth/verify-token",
             "description": "Verify the current Bearer accessToken and return the authenticated user."
           }
         },
@@ -1559,19 +1558,7 @@
           "request": {
             "method": "GET",
             "header": [],
-            "url": {
-              "raw": "http://localhost:3000/api/auth/profile",
-              "host": [
-                "localhost"
-              ],
-              "path": [
-                "api",
-                "auth",
-                "profile"
-              ],
-              "protocol": "http",
-              "port": "3000"
-            },
+            "url": "{{baseUrl}}/auth/profile",
             "description": "Get authenticated user profile using JWT access token."
           }
         },
@@ -1580,71 +1567,77 @@
           "request": {
             "method": "POST",
             "header": [],
-            "url": {
-              "raw": "http://localhost:3000/api/auth/logout",
-              "host": [
-                "localhost"
-              ],
-              "path": [
-                "api",
-                "auth",
-                "logout"
-              ],
-              "protocol": "http",
-              "port": "3000"
-            },
+            "url": "{{baseUrl}}/auth/logout",
             "description": "Revoke the current stored refresh token."
           }
         },
         {
           "name": "List Users",
           "request": {
-            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminAccessToken}}", "type": "string" }] },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
             "method": "GET",
             "header": [],
-            "url": {
-              "raw": "http://localhost:3000/api/admin/users",
-              "host": ["localhost"],
-              "path": ["api", "admin", "users"],
-              "protocol": "http",
-              "port": "3000"
-            },
+            "url": "{{baseUrl}}/admin/users",
             "description": "List CUSTOMER, SUPPLIER and ADMIN accounts. Requires ADMIN token."
           }
         },
         {
           "name": "Pending Supplier Applications",
           "request": {
-            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminAccessToken}}", "type": "string" }] },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
             "method": "GET",
             "header": [],
-            "url": {
-              "raw": "http://localhost:3000/api/admin/supplier-applications",
-              "host": ["localhost"],
-              "path": ["api", "admin", "supplier-applications"],
-              "protocol": "http",
-              "port": "3000"
-            }
+            "url": "{{baseUrl}}/admin/supplier-applications"
           }
         },
         {
           "name": "Approve Supplier Application",
           "request": {
-            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminAccessToken}}", "type": "string" }] },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
             "method": "PATCH",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"decision\": \"APPROVE\",\n  \"note\": \"Hồ sơ hợp lệ\"\n}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
-            "url": {
-              "raw": "http://localhost:3000/api/admin/supplier-applications/{{userId}}",
-              "host": ["localhost"],
-              "path": ["api", "admin", "supplier-applications", "{{userId}}"],
-              "protocol": "http",
-              "port": "3000"
-            }
+            "url": "{{baseUrl}}/admin/supplier-applications/{{userId}}"
           }
         }
       ],
@@ -1658,19 +1651,7 @@
           "request": {
             "method": "GET",
             "header": [],
-            "url": {
-              "raw": "http://localhost:3000/api/users/me",
-              "host": [
-                "localhost"
-              ],
-              "path": [
-                "api",
-                "users",
-                "me"
-              ],
-              "protocol": "http",
-              "port": "3000"
-            }
+            "url": "{{baseUrl}}/users/me"
           }
         },
         {
@@ -1692,19 +1673,7 @@
                 }
               }
             },
-            "url": {
-              "raw": "http://localhost:3000/api/users/me",
-              "host": [
-                "localhost"
-              ],
-              "path": [
-                "api",
-                "users",
-                "me"
-              ],
-              "protocol": "http",
-              "port": "3000"
-            },
+            "url": "{{baseUrl}}/users/me",
             "description": "Updates only the current user profile fields you send. This sample updates fullName only."
           }
         },
@@ -1723,20 +1692,7 @@
                 }
               ]
             },
-            "url": {
-              "raw": "http://localhost:3000/api/users/me/avatar",
-              "host": [
-                "localhost"
-              ],
-              "path": [
-                "api",
-                "users",
-                "me",
-                "avatar"
-              ],
-              "protocol": "http",
-              "port": "3000"
-            },
+            "url": "{{baseUrl}}/users/me/avatar",
             "description": "Select an image file in the avatar field before sending."
           }
         },
@@ -1745,19 +1701,7 @@
           "request": {
             "method": "DELETE",
             "header": [],
-            "url": {
-              "raw": "http://localhost:3000/api/users/me",
-              "host": [
-                "localhost"
-              ],
-              "path": [
-                "api",
-                "users",
-                "me"
-              ],
-              "protocol": "http",
-              "port": "3000"
-            }
+            "url": "{{baseUrl}}/users/me"
           }
         }
       ],
@@ -1796,19 +1740,7 @@
                 }
               ]
             },
-            "url": {
-              "raw": "http://localhost:3000/api/rooms/upload",
-              "host": [
-                "localhost"
-              ],
-              "path": [
-                "api",
-                "rooms",
-                "upload"
-              ],
-              "protocol": "http",
-              "port": "3000"
-            },
+            "url": "{{baseUrl}}/rooms/upload",
             "description": "Upload a room image to Cloudinary and create a room document. The response returns roomId for AI and Decor Plan requests."
           },
           "event": [
@@ -1833,18 +1765,7 @@
           "request": {
             "method": "GET",
             "header": [],
-            "url": {
-              "raw": "http://localhost:3000/api/rooms",
-              "host": [
-                "localhost"
-              ],
-              "path": [
-                "api",
-                "rooms"
-              ],
-              "protocol": "http",
-              "port": "3000"
-            },
+            "url": "{{baseUrl}}/rooms",
             "description": "Returns rooms for the current user. If at least one room exists, roomId is saved automatically from roomId/_id."
           }
         },
@@ -1853,19 +1774,7 @@
           "request": {
             "method": "GET",
             "header": [],
-            "url": {
-              "raw": "http://localhost:3000/api/rooms/{{roomId}}",
-              "host": [
-                "localhost"
-              ],
-              "path": [
-                "api",
-                "rooms",
-                "{{roomId}}"
-              ],
-              "protocol": "http",
-              "port": "3000"
-            },
+            "url": "{{baseUrl}}/rooms/{{roomId}}",
             "description": "Uses userAccessToken. The roomId must belong to the logged-in user. If this returns 404, run Login again with the room owner account, then Get Rooms, then Get Room By ID."
           }
         },
@@ -1874,19 +1783,7 @@
           "request": {
             "method": "DELETE",
             "header": [],
-            "url": {
-              "raw": "http://localhost:3000/api/rooms/{{roomId}}",
-              "host": [
-                "localhost"
-              ],
-              "path": [
-                "api",
-                "rooms",
-                "{{roomId}}"
-              ],
-              "protocol": "http",
-              "port": "3000"
-            }
+            "url": "{{baseUrl}}/rooms/{{roomId}}"
           }
         }
       ],
@@ -1900,21 +1797,7 @@
           "request": {
             "method": "POST",
             "header": [],
-            "url": {
-              "raw": "http://localhost:3000/api/ai/rooms/{{roomId}}/analyze",
-              "host": [
-                "localhost"
-              ],
-              "path": [
-                "api",
-                "ai",
-                "rooms",
-                "{{roomId}}",
-                "analyze"
-              ],
-              "protocol": "http",
-              "port": "3000"
-            }
+            "url": "{{baseUrl}}/ai/rooms/{{roomId}}/analyze"
           }
         },
         {
@@ -1922,21 +1805,7 @@
           "request": {
             "method": "GET",
             "header": [],
-            "url": {
-              "raw": "http://localhost:3000/api/ai/rooms/{{roomId}}/objects",
-              "host": [
-                "localhost"
-              ],
-              "path": [
-                "api",
-                "ai",
-                "rooms",
-                "{{roomId}}",
-                "objects"
-              ],
-              "protocol": "http",
-              "port": "3000"
-            }
+            "url": "{{baseUrl}}/ai/rooms/{{roomId}}/objects"
           }
         },
         {
@@ -1944,21 +1813,7 @@
           "request": {
             "method": "GET",
             "header": [],
-            "url": {
-              "raw": "http://localhost:3000/api/ai/rooms/{{roomId}}/colors",
-              "host": [
-                "localhost"
-              ],
-              "path": [
-                "api",
-                "ai",
-                "rooms",
-                "{{roomId}}",
-                "colors"
-              ],
-              "protocol": "http",
-              "port": "3000"
-            }
+            "url": "{{baseUrl}}/ai/rooms/{{roomId}}/colors"
           }
         },
         {
@@ -1966,21 +1821,21 @@
           "request": {
             "method": "GET",
             "header": [],
-            "url": {
-              "raw": "http://localhost:3000/api/ai/rooms/{{roomId}}/type",
-              "host": [
-                "localhost"
-              ],
-              "path": [
-                "api",
-                "ai",
-                "rooms",
-                "{{roomId}}",
-                "type"
-              ],
-              "protocol": "http",
-              "port": "3000"
-            }
+            "url": "{{baseUrl}}/ai/rooms/{{roomId}}/type"
+          }
+        },
+        {
+          "name": "Open Product Affiliate Link",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/products/{{productId}}/redirect",
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "Product must have a valid productLink. Disable automatic redirects to inspect the 302 Location header."
+          },
+          "protocolProfileBehavior": {
+            "followRedirects": false
           }
         }
       ],
@@ -2120,18 +1975,7 @@
                 }
               }
             },
-            "url": {
-              "raw": "http://localhost:3000/api/products",
-              "host": [
-                "localhost"
-              ],
-              "path": [
-                "api",
-                "products"
-              ],
-              "protocol": "http",
-              "port": "3000"
-            },
+            "url": "{{baseUrl}}/products",
             "description": "Requires ADMIN or an approved SUPPLIER access token. A CUSTOMER must submit a supplier application and wait for ADMIN approval first."
           },
           "event": [
@@ -2158,18 +2002,7 @@
             },
             "method": "GET",
             "header": [],
-            "url": {
-              "raw": "http://localhost:3000/api/products",
-              "host": [
-                "localhost"
-              ],
-              "path": [
-                "api",
-                "products"
-              ],
-              "protocol": "http",
-              "port": "3000"
-            },
+            "url": "{{baseUrl}}/products",
             "description": "Returns products. If at least one product exists, productId is saved automatically."
           }
         },
@@ -2181,19 +2014,7 @@
             },
             "method": "GET",
             "header": [],
-            "url": {
-              "raw": "http://localhost:3000/api/products/{{productId}}",
-              "host": [
-                "localhost"
-              ],
-              "path": [
-                "api",
-                "products",
-                "{{productId}}"
-              ],
-              "protocol": "http",
-              "port": "3000"
-            }
+            "url": "{{baseUrl}}/products/{{productId}}"
           }
         },
         {
@@ -2204,20 +2025,7 @@
             },
             "method": "GET",
             "header": [],
-            "url": {
-              "raw": "http://localhost:3000/api/products/{{productId}}/redirect",
-              "host": [
-                "localhost"
-              ],
-              "path": [
-                "api",
-                "products",
-                "{{productId}}",
-                "redirect"
-              ],
-              "protocol": "http",
-              "port": "3000"
-            },
+            "url": "{{baseUrl}}/products/{{productId}}/redirect",
             "description": "Redirects to productLink on the third-party platform, for example Shopee/Lazada/Tiki. In frontend, use redirectUrl or externalUrl from product response."
           }
         },
@@ -2229,20 +2037,7 @@
             },
             "method": "GET",
             "header": [],
-            "url": {
-              "raw": "http://localhost:3000/api/products/style/{{style}}",
-              "host": [
-                "localhost"
-              ],
-              "path": [
-                "api",
-                "products",
-                "style",
-                "{{style}}"
-              ],
-              "protocol": "http",
-              "port": "3000"
-            }
+            "url": "{{baseUrl}}/products/style/{{style}}"
           }
         },
         {
@@ -2253,20 +2048,7 @@
             },
             "method": "GET",
             "header": [],
-            "url": {
-              "raw": "http://localhost:3000/api/products/budget/{{budget}}",
-              "host": [
-                "localhost"
-              ],
-              "path": [
-                "api",
-                "products",
-                "budget",
-                "{{budget}}"
-              ],
-              "protocol": "http",
-              "port": "3000"
-            }
+            "url": "{{baseUrl}}/products/budget/{{budget}}"
           }
         }
       ],
@@ -2294,19 +2076,7 @@
                 }
               }
             },
-            "url": {
-              "raw": "http://localhost:3000/api/decor-plans/generate",
-              "host": [
-                "localhost"
-              ],
-              "path": [
-                "api",
-                "decor-plans",
-                "generate"
-              ],
-              "protocol": "http",
-              "port": "3000"
-            },
+            "url": "{{baseUrl}}/decor-plans/generate",
             "description": "Generates and saves a decor plan. decorPlanId is saved automatically from the response."
           },
           "event": [
@@ -2351,18 +2121,7 @@
                 }
               }
             },
-            "url": {
-              "raw": "http://localhost:3000/api/favorites",
-              "host": [
-                "localhost"
-              ],
-              "path": [
-                "api",
-                "favorites"
-              ],
-              "protocol": "http",
-              "port": "3000"
-            },
+            "url": "{{baseUrl}}/favorites",
             "description": "decorPlanId must belong to the current authenticated user. Use a saved decor plan id from MongoDB or let Generate Decor Plan set decorPlanId if your backend returns the created plan id."
           },
           "event": [
@@ -2386,18 +2145,7 @@
           "request": {
             "method": "GET",
             "header": [],
-            "url": {
-              "raw": "http://localhost:3000/api/favorites",
-              "host": [
-                "localhost"
-              ],
-              "path": [
-                "api",
-                "favorites"
-              ],
-              "protocol": "http",
-              "port": "3000"
-            },
+            "url": "{{baseUrl}}/favorites",
             "description": "Returns favorites for the current user. favoriteId and decorPlanId are saved automatically when data exists."
           },
           "event": [
@@ -2420,19 +2168,7 @@
           "request": {
             "method": "DELETE",
             "header": [],
-            "url": {
-              "raw": "http://localhost:3000/api/favorites/{{favoriteId}}",
-              "host": [
-                "localhost"
-              ],
-              "path": [
-                "api",
-                "favorites",
-                "{{favoriteId}}"
-              ],
-              "protocol": "http",
-              "port": "3000"
-            }
+            "url": "{{baseUrl}}/favorites/{{favoriteId}}"
           }
         }
       ],
@@ -2456,19 +2192,7 @@
             },
             "method": "GET",
             "header": [],
-            "url": {
-              "raw": "http://localhost:3000/api/admin/dashboard",
-              "host": [
-                "localhost"
-              ],
-              "path": [
-                "api",
-                "admin",
-                "dashboard"
-              ],
-              "protocol": "http",
-              "port": "3000"
-            },
+            "url": "{{baseUrl}}/admin/dashboard",
             "description": "Requires ADMIN access token."
           }
         }
@@ -2477,153 +2201,1675 @@
     },
     {
       "name": "10 Admin - Users & Suppliers (Updated)",
-      "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminAccessToken}}", "type": "string" }] },
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{adminAccessToken}}",
+            "type": "string"
+          }
+        ]
+      },
       "item": [
-        { "name": "Dashboard Revenue", "request": { "method": "GET", "url": "{{baseUrl}}/admin/dashboard/revenue?period=month" } },
-        { "name": "Admin User Detail", "request": { "method": "GET", "url": "{{baseUrl}}/admin/users/{{userId}}" } },
-        { "name": "Lock or Unlock User", "request": { "method": "PATCH", "header": [{"key":"Content-Type","value":"application/json"}], "body": {"mode":"raw","raw":"{\n  \"status\": \"ACTIVE\"\n}"}, "url": "{{baseUrl}}/admin/users/{{userId}}/status" } },
-        { "name": "Change User Role", "request": { "method": "PATCH", "header": [{"key":"Content-Type","value":"application/json"}], "body": {"mode":"raw","raw":"{\n  \"role\": \"STAFF\"\n}"}, "url": "{{baseUrl}}/admin/users/{{userId}}/role" } },
-        { "name": "List Approved Suppliers", "request": { "method": "GET", "url": "{{baseUrl}}/admin/suppliers?status=APPROVED" } },
-        { "name": "Supplier Detail", "request": { "method": "GET", "url": "{{baseUrl}}/admin/suppliers/{{supplierId}}" } },
-        { "name": "Suspend Supplier", "request": { "method": "PATCH", "header": [{"key":"Content-Type","value":"application/json"}], "body": {"mode":"raw","raw":"{\n  \"status\": \"SUSPENDED\",\n  \"reason\": \"Tạm ngưng để kiểm tra hồ sơ\"\n}"}, "url": "{{baseUrl}}/admin/suppliers/{{supplierId}}/status" } },
-        { "name": "Submit Supplier Application", "auth": {"type":"bearer","bearer":[{"key":"token","value":"{{userAccessToken}}","type":"string"}]}, "request": { "method": "PATCH", "header": [{"key":"Content-Type","value":"application/json"}], "body": {"mode":"raw","raw":"{\n  \"businessName\": \"Mộc Nhiên Living\",\n  \"taxCode\": \"0312345678\",\n  \"businessLicenseUrl\": \"https://example.com/license.pdf\"\n}"}, "url": "{{baseUrl}}/users/me/supplier-application" } }
+        {
+          "name": "Dashboard Revenue",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/admin/dashboard/revenue?period=month"
+          }
+        },
+        {
+          "name": "Admin User Detail",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/admin/users/{{userId}}"
+          }
+        },
+        {
+          "name": "Lock or Unlock User",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"ACTIVE\"\n}"
+            },
+            "url": "{{baseUrl}}/admin/users/{{userId}}/status"
+          }
+        },
+        {
+          "name": "Change User Role",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"STAFF\"\n}"
+            },
+            "url": "{{baseUrl}}/admin/users/{{userId}}/role"
+          }
+        },
+        {
+          "name": "List Approved Suppliers",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/admin/suppliers?status=APPROVED"
+          }
+        },
+        {
+          "name": "Supplier Detail",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/admin/suppliers/{{supplierId}}"
+          }
+        },
+        {
+          "name": "Suspend Supplier",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"SUSPENDED\",\n  \"reason\": \"Tạm ngưng để kiểm tra hồ sơ\"\n}"
+            },
+            "url": "{{baseUrl}}/admin/suppliers/{{supplierId}}/status"
+          }
+        },
+        {
+          "name": "Submit Supplier Application",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"businessName\": \"Mộc Nhiên Living\",\n  \"taxCode\": \"0312345678\",\n  \"businessLicenseUrl\": \"https://example.com/license.pdf\"\n}"
+            },
+            "url": "{{baseUrl}}/users/me/supplier-application",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{userAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        }
       ]
     },
     {
       "name": "11 Categories & Brands (Updated)",
-      "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminAccessToken}}", "type": "string" }] },
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{adminAccessToken}}",
+            "type": "string"
+          }
+        ]
+      },
       "item": [
-        { "name": "Public Categories", "auth":{"type":"noauth"}, "request": {"method":"GET","url":"{{baseUrl}}/categories"} },
-        { "name": "Create Category", "request": {"method":"POST","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\n  \"name\": \"Sofa\",\n  \"order\": 1\n}"},"url":"{{baseUrl}}/categories"} },
-        { "name": "Reorder Categories", "request": {"method":"PATCH","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\n  \"items\": [{ \"id\": \"{{categoryId}}\", \"order\": 1 }]\n}"},"url":"{{baseUrl}}/categories/reorder"} },
-        { "name": "Update Category", "request": {"method":"PATCH","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\n  \"name\": \"Sofa phòng khách\"\n}"},"url":"{{baseUrl}}/categories/{{categoryId}}"} },
-        { "name": "Upload Category Image", "request": {"method":"PATCH","body":{"mode":"formdata","formdata":[{"key":"image","type":"file","src":[]}]},"url":"{{baseUrl}}/categories/{{categoryId}}/image"} },
-        { "name": "Delete Category", "request": {"method":"DELETE","url":"{{baseUrl}}/categories/{{categoryId}}"} },
-        { "name": "Public Brands", "auth":{"type":"noauth"}, "request": {"method":"GET","url":"{{baseUrl}}/brands"} },
-        { "name": "Public Brand Products", "auth":{"type":"noauth"}, "request": {"method":"GET","url":"{{baseUrl}}/brands/{{brandId}}/products"} },
-        { "name": "Admin Brands", "request": {"method":"GET","url":"{{baseUrl}}/brands/admin/all"} },
-        { "name": "Create Brand", "request": {"method":"POST","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\n  \"name\": \"DECOHO Living\",\n  \"logo\": \"https://example.com/logo.png\"\n}"},"url":"{{baseUrl}}/brands"} },
-        { "name": "Update Brand", "request": {"method":"PATCH","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\n  \"name\": \"DECOHO Home\"\n}"},"url":"{{baseUrl}}/brands/{{brandId}}"} },
-        { "name": "Toggle Brand Visibility", "request": {"method":"PATCH","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\n  \"isVisible\": false\n}"},"url":"{{baseUrl}}/brands/{{brandId}}/visibility"} },
-        { "name": "Link Brand Suppliers", "request": {"method":"PUT","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\n  \"supplierIds\": [\"{{supplierId}}\"]\n}"},"url":"{{baseUrl}}/brands/{{brandId}}/suppliers"} },
-        { "name": "Brand Products", "request": {"method":"GET","url":"{{baseUrl}}/brands/admin/{{brandId}}/products"} },
-        { "name": "Delete Brand", "request": {"method":"DELETE","url":"{{baseUrl}}/brands/{{brandId}}"} }
+        {
+          "name": "Public Categories",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/categories",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Create Category",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Sofa\",\n  \"order\": 1\n}"
+            },
+            "url": "{{baseUrl}}/categories"
+          }
+        },
+        {
+          "name": "Reorder Categories",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"items\": [{ \"id\": \"{{categoryId}}\", \"order\": 1 }]\n}"
+            },
+            "url": "{{baseUrl}}/categories/reorder"
+          }
+        },
+        {
+          "name": "Update Category",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Sofa phòng khách\"\n}"
+            },
+            "url": "{{baseUrl}}/categories/{{categoryId}}"
+          }
+        },
+        {
+          "name": "Upload Category Image",
+          "request": {
+            "method": "PATCH",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "image",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/categories/{{categoryId}}/image"
+          }
+        },
+        {
+          "name": "Delete Category",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/categories/{{categoryId}}"
+          }
+        },
+        {
+          "name": "Public Brands",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/brands",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Public Brand Products",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/brands/{{brandId}}/products",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Admin Brands",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/brands/admin/all"
+          }
+        },
+        {
+          "name": "Create Brand",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"DECOHO Living\",\n  \"logo\": \"https://example.com/logo.png\"\n}"
+            },
+            "url": "{{baseUrl}}/brands"
+          }
+        },
+        {
+          "name": "Update Brand",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"DECOHO Home\"\n}"
+            },
+            "url": "{{baseUrl}}/brands/{{brandId}}"
+          }
+        },
+        {
+          "name": "Toggle Brand Visibility",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"isVisible\": false\n}"
+            },
+            "url": "{{baseUrl}}/brands/{{brandId}}/visibility"
+          }
+        },
+        {
+          "name": "Link Brand Suppliers",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"supplierIds\": [\"{{supplierId}}\"]\n}"
+            },
+            "url": "{{baseUrl}}/brands/{{brandId}}/suppliers"
+          }
+        },
+        {
+          "name": "Brand Products",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/brands/admin/{{brandId}}/products"
+          }
+        },
+        {
+          "name": "Delete Brand",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/brands/{{brandId}}"
+          }
+        }
       ]
     },
     {
       "name": "12 Products & Orders Admin (Updated)",
-      "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminAccessToken}}", "type": "string" }] },
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{adminAccessToken}}",
+            "type": "string"
+          }
+        ]
+      },
       "item": [
-        { "name": "Supplier My Products", "auth":{"type":"bearer","bearer":[{"key":"token","value":"{{userAccessToken}}","type":"string"}]}, "request":{"method":"GET","url":"{{baseUrl}}/products/supplier/mine"} },
-        { "name": "Admin All Products", "request":{"method":"GET","url":"{{baseUrl}}/products/admin/all?status=PENDING"} },
-        { "name": "Admin Product Settings", "request":{"method":"PATCH","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\n  \"stock\": 20,\n  \"isFeatured\": true,\n  \"discountPercent\": 10\n}"},"url":"{{baseUrl}}/products/admin/{{productId}}/settings"} },
-        { "name": "Moderate Product", "request":{"method":"PATCH","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\n  \"action\": \"APPROVE\",\n  \"reason\": \"Thông tin hợp lệ\"\n}"},"url":"{{baseUrl}}/products/admin/{{productId}}/moderation"} },
-        { "name": "Update Product", "request":{"method":"PATCH","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\n  \"name\": \"Sofa Cloud Updated\"\n}"},"url":"{{baseUrl}}/products/{{productId}}"} },
-        { "name": "Delete Product", "request":{"method":"DELETE","url":"{{baseUrl}}/products/{{productId}}"} },
-        { "name": "Create Order", "auth":{"type":"bearer","bearer":[{"key":"token","value":"{{userAccessToken}}","type":"string"}]}, "request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\n  \"items\": [{\"productId\":\"{{productId}}\",\"quantity\":1}],\n  \"customerName\":\"Nguyen Van A\",\n  \"customerEmail\":\"vana@gmail.com\",\n  \"customerPhone\":\"0901234567\",\n  \"shippingAddress\":\"TP.HCM\",\n  \"paymentMethod\":\"COD\",\n  \"promotionCode\":\"DECOHO20\"\n}"},"url":"{{baseUrl}}/orders"} },
-        { "name": "My Orders", "auth":{"type":"bearer","bearer":[{"key":"token","value":"{{userAccessToken}}","type":"string"}]}, "request":{"method":"GET","url":"{{baseUrl}}/orders/mine"} },
-        { "name": "Submit Order Complaint", "auth":{"type":"bearer","bearer":[{"key":"token","value":"{{userAccessToken}}","type":"string"}]}, "request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\n  \"message\": \"Sản phẩm bị trầy xước khi nhận hàng\"\n}"},"url":"{{baseUrl}}/orders/mine/{{orderId}}/complaint"} },
-        { "name": "Admin All Orders", "request":{"method":"GET","url":"{{baseUrl}}/orders/admin/all?status=PENDING"} },
-        { "name": "Admin Order Detail", "request":{"method":"GET","url":"{{baseUrl}}/orders/admin/{{orderId}}"} },
-        { "name": "Update Order Status", "request":{"method":"PATCH","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\n  \"note\": \"Đã xác nhận đơn\"\n}"},"url":"{{baseUrl}}/orders/admin/{{orderId}}/status/CONFIRMED"} },
-        { "name": "Cancel Order", "request":{"method":"PATCH","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\n  \"reason\": \"Khách hàng yêu cầu hủy\"\n}"},"url":"{{baseUrl}}/orders/admin/{{orderId}}/cancel"} },
-        { "name": "Refund Order", "request":{"method":"PATCH","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\n  \"amount\": 100000,\n  \"reason\": \"Hoàn tiền khiếu nại\"\n}"},"url":"{{baseUrl}}/orders/admin/{{orderId}}/refund"} },
-        { "name": "Resolve Order Complaint", "request":{"method":"PATCH","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\n  \"status\": \"RESOLVED\",\n  \"resolution\": \"Đã đổi sản phẩm mới\"\n}"},"url":"{{baseUrl}}/orders/admin/{{orderId}}/complaint/resolve"} }
+        {
+          "name": "Supplier My Products",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/products/supplier/mine",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{userAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Admin All Products",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/products/admin/all?status=PENDING"
+          }
+        },
+        {
+          "name": "Admin Product Settings",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"stock\": 20,\n  \"isFeatured\": true,\n  \"discountPercent\": 10\n}"
+            },
+            "url": "{{baseUrl}}/products/admin/{{productId}}/settings"
+          }
+        },
+        {
+          "name": "Moderate Product",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"action\": \"APPROVE\",\n  \"reason\": \"Thông tin hợp lệ\"\n}"
+            },
+            "url": "{{baseUrl}}/products/admin/{{productId}}/moderation"
+          }
+        },
+        {
+          "name": "Update Product",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Sofa Cloud Updated\"\n}"
+            },
+            "url": "{{baseUrl}}/products/{{productId}}"
+          }
+        },
+        {
+          "name": "Delete Product",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/products/{{productId}}"
+          }
+        },
+        {
+          "name": "Create Order",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"items\": [{\"productId\":\"{{productId}}\",\"quantity\":1}],\n  \"customerName\":\"Nguyen Van A\",\n  \"customerEmail\":\"vana@gmail.com\",\n  \"customerPhone\":\"0901234567\",\n  \"shippingAddress\":\"TP.HCM\",\n  \"paymentMethod\":\"COD\",\n  \"promotionCode\":\"DECOHO20\"\n}"
+            },
+            "url": "{{baseUrl}}/orders",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{userAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "My Orders",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/orders/mine",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{userAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Submit Order Complaint",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"Sản phẩm bị trầy xước khi nhận hàng\"\n}"
+            },
+            "url": "{{baseUrl}}/orders/mine/{{orderId}}/complaint",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{userAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Admin All Orders",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/orders/admin/all?status=PENDING"
+          }
+        },
+        {
+          "name": "Admin Order Detail",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/orders/admin/{{orderId}}"
+          }
+        },
+        {
+          "name": "Update Order Status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"note\": \"Đã xác nhận đơn\"\n}"
+            },
+            "url": "{{baseUrl}}/orders/admin/{{orderId}}/status/CONFIRMED"
+          }
+        },
+        {
+          "name": "Cancel Order",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Khách hàng yêu cầu hủy\"\n}"
+            },
+            "url": "{{baseUrl}}/orders/admin/{{orderId}}/cancel"
+          }
+        },
+        {
+          "name": "Refund Order",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 100000,\n  \"reason\": \"Hoàn tiền khiếu nại\"\n}"
+            },
+            "url": "{{baseUrl}}/orders/admin/{{orderId}}/refund"
+          }
+        },
+        {
+          "name": "Resolve Order Complaint",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"RESOLVED\",\n  \"resolution\": \"Đã đổi sản phẩm mới\"\n}"
+            },
+            "url": "{{baseUrl}}/orders/admin/{{orderId}}/complaint/resolve"
+          }
+        }
       ]
     },
     {
       "name": "13 Payments & Promotions (Updated)",
-      "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminAccessToken}}", "type": "string" }] },
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{adminAccessToken}}",
+            "type": "string"
+          }
+        ]
+      },
       "item": [
-        { "name": "Payment History", "request":{"method":"GET","url":"{{baseUrl}}/payments/admin?status=SUCCESS"} },
-        { "name": "Supplier Payouts", "request":{"method":"GET","url":"{{baseUrl}}/payments/admin/supplier-payouts"} },
-        { "name": "Export Payments CSV", "request":{"method":"GET","url":"{{baseUrl}}/payments/admin/export"} },
-        { "name": "Payment Detail", "request":{"method":"GET","url":"{{baseUrl}}/payments/admin/{{paymentId}}"} },
-        { "name": "Refund Payment", "request":{"method":"PATCH","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\n  \"amount\": 100000,\n  \"reason\": \"Hoàn tiền theo yêu cầu\"\n}"},"url":"{{baseUrl}}/payments/admin/{{paymentId}}/refund"} },
-        { "name": "Update Supplier Payout", "request":{"method":"PATCH","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\n  \"status\": \"PAID\",\n  \"note\": \"Đã đối soát\"\n}"},"url":"{{baseUrl}}/payments/admin/{{paymentId}}/payout"} },
-        { "name": "Validate Promotion", "auth":{"type":"noauth"}, "request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\n  \"code\": \"DECOHO20\",\n  \"subtotal\": 10000000,\n  \"productIds\": [\"{{productId}}\"],\n  \"supplierIds\": [\"{{supplierId}}\"]\n}"},"url":"{{baseUrl}}/promotions/validate"} },
-        { "name": "Admin Promotions", "request":{"method":"GET","url":"{{baseUrl}}/promotions/admin/all"} },
-        { "name": "Promotion Detail", "request":{"method":"GET","url":"{{baseUrl}}/promotions/admin/{{promotionId}}"} },
-        { "name": "Create Promotion", "request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\n  \"code\": \"DECOHO20\",\n  \"discountType\": \"percentage\",\n  \"discountValue\": 20,\n  \"startDate\": \"2026-08-01T00:00:00.000Z\",\n  \"endDate\": \"2026-08-31T23:59:59.000Z\",\n  \"usageLimit\": 100\n}"},"url":"{{baseUrl}}/promotions"} },
-        { "name": "Update Promotion", "request":{"method":"PATCH","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\n  \"usageLimit\": 200\n}"},"url":"{{baseUrl}}/promotions/{{promotionId}}"} },
-        { "name": "Disable Promotion", "request":{"method":"PATCH","url":"{{baseUrl}}/promotions/{{promotionId}}/disable"} }
+        {
+          "name": "Payment History",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/payments/admin?status=SUCCESS"
+          }
+        },
+        {
+          "name": "Supplier Payouts",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/payments/admin/supplier-payouts"
+          }
+        },
+        {
+          "name": "Export Payments CSV",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/payments/admin/export"
+          }
+        },
+        {
+          "name": "Payment Detail",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/payments/admin/{{paymentId}}"
+          }
+        },
+        {
+          "name": "Refund Payment",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 100000,\n  \"reason\": \"Hoàn tiền theo yêu cầu\"\n}"
+            },
+            "url": "{{baseUrl}}/payments/admin/{{paymentId}}/refund"
+          }
+        },
+        {
+          "name": "Update Supplier Payout",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"PAID\",\n  \"note\": \"Đã đối soát\"\n}"
+            },
+            "url": "{{baseUrl}}/payments/admin/{{paymentId}}/payout"
+          }
+        },
+        {
+          "name": "Validate Promotion",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"DECOHO20\",\n  \"subtotal\": 10000000,\n  \"productIds\": [\"{{productId}}\"],\n  \"supplierIds\": [\"{{supplierId}}\"]\n}"
+            },
+            "url": "{{baseUrl}}/promotions/validate",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Admin Promotions",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/promotions/admin/all"
+          }
+        },
+        {
+          "name": "Promotion Detail",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/promotions/admin/{{promotionId}}"
+          }
+        },
+        {
+          "name": "Create Promotion",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"DECOHO20\",\n  \"discountType\": \"percentage\",\n  \"discountValue\": 20,\n  \"startDate\": \"2026-08-01T00:00:00.000Z\",\n  \"endDate\": \"2026-08-31T23:59:59.000Z\",\n  \"usageLimit\": 100\n}"
+            },
+            "url": "{{baseUrl}}/promotions"
+          }
+        },
+        {
+          "name": "Update Promotion",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"usageLimit\": 200\n}"
+            },
+            "url": "{{baseUrl}}/promotions/{{promotionId}}"
+          }
+        },
+        {
+          "name": "Disable Promotion",
+          "request": {
+            "method": "PATCH",
+            "url": "{{baseUrl}}/promotions/{{promotionId}}/disable"
+          }
+        }
       ]
     },
     {
       "name": "14 Product Space & Showroom 3D (Updated)",
-      "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminAccessToken}}", "type": "string" }] },
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{adminAccessToken}}",
+            "type": "string"
+          }
+        ]
+      },
       "item": [
-        { "name":"Public Product Spaces", "auth":{"type":"noauth"}, "request":{"method":"GET","url":"{{baseUrl}}/product-spaces"} },
-        { "name":"Preview Product Space", "auth":{"type":"noauth"}, "request":{"method":"GET","url":"{{baseUrl}}/product-spaces/{{productSpaceId}}"} },
-        { "name":"Admin Product Spaces", "request":{"method":"GET","url":"{{baseUrl}}/product-spaces/admin/all"} },
-        { "name":"Upload Product Space", "request":{"method":"POST","body":{"mode":"formdata","formdata":[{"key":"image","type":"file","src":[]},{"key":"title","value":"Phòng khách Japandi","type":"text"},{"key":"roomType","value":"living_room","type":"text"},{"key":"width","value":"4.5","type":"text"},{"key":"length","value":"6.2","type":"text"},{"key":"isPublic","value":"true","type":"text"}]},"url":"{{baseUrl}}/product-spaces/admin/upload"} },
-        { "name":"Update Product Space", "request":{"method":"PATCH","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\n  \"title\": \"Phòng khách Contemporary\",\n  \"isPublic\": true,\n  \"isFeatured\": true\n}"},"url":"{{baseUrl}}/product-spaces/admin/{{productSpaceId}}"} },
-        { "name":"Add Product Point", "request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\n  \"productId\": \"{{productId}}\",\n  \"x\": 45,\n  \"y\": 60\n}"},"url":"{{baseUrl}}/product-spaces/admin/{{productSpaceId}}/points"} },
-        { "name":"Update Product Point", "request":{"method":"PATCH","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\n  \"productId\": \"{{productId}}\",\n  \"x\": 50,\n  \"y\": 55\n}"},"url":"{{baseUrl}}/product-spaces/admin/{{productSpaceId}}/points/{{pointId}}"} },
-        { "name":"Delete Product Point", "request":{"method":"DELETE","url":"{{baseUrl}}/product-spaces/admin/{{productSpaceId}}/points/{{pointId}}"} },
-        { "name":"Public Showrooms", "auth":{"type":"noauth"}, "request":{"method":"GET","url":"{{baseUrl}}/showrooms"} },
-        { "name":"Preview Showroom", "auth":{"type":"noauth"}, "request":{"method":"GET","url":"{{baseUrl}}/showrooms/{{showroomId}}"} },
-        { "name":"Admin Showrooms", "request":{"method":"GET","url":"{{baseUrl}}/showrooms/admin/all"} },
-        { "name":"Create Showroom", "request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\n  \"title\": \"Contemporary Living 3D\",\n  \"description\": \"Showroom phòng khách hiện đại\"\n}"},"url":"{{baseUrl}}/showrooms/admin"} },
-        { "name":"Update Showroom", "request":{"method":"PATCH","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\n  \"status\": \"PUBLISHED\"\n}"},"url":"{{baseUrl}}/showrooms/admin/{{showroomId}}"} },
-        { "name":"Upload Environment Model", "request":{"method":"POST","body":{"mode":"formdata","formdata":[{"key":"model","type":"file","src":[]}]},"url":"{{baseUrl}}/showrooms/admin/{{showroomId}}/environment"} },
-        { "name":"Upload Product 3D Model", "request":{"method":"POST","body":{"mode":"formdata","formdata":[{"key":"model","type":"file","src":[]}]},"url":"{{baseUrl}}/showrooms/admin/models/upload"} },
-        { "name":"Add Showroom Item", "request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\n  \"productId\": \"{{productId}}\",\n  \"modelUrl\": \"https://example.com/sofa.glb\",\n  \"position\": {\"x\":0,\"y\":0,\"z\":0},\n  \"rotation\": {\"x\":0,\"y\":45,\"z\":0},\n  \"scale\": {\"x\":1,\"y\":1,\"z\":1}\n}"},"url":"{{baseUrl}}/showrooms/admin/{{showroomId}}/items"} },
-        { "name":"Update Showroom Transform", "request":{"method":"PATCH","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\n  \"position\": {\"x\":1,\"y\":0,\"z\":2},\n  \"rotation\": {\"x\":0,\"y\":90,\"z\":0},\n  \"scale\": {\"x\":1.2,\"y\":1.2,\"z\":1.2}\n}"},"url":"{{baseUrl}}/showrooms/admin/{{showroomId}}/items/{{showroomItemId}}"} },
-        { "name":"Delete Showroom Item", "request":{"method":"DELETE","url":"{{baseUrl}}/showrooms/admin/{{showroomId}}/items/{{showroomItemId}}"} }
+        {
+          "name": "Public Product Spaces",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/product-spaces",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Preview Product Space",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/product-spaces/{{productSpaceId}}",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Admin Product Spaces",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/product-spaces/admin/all"
+          }
+        },
+        {
+          "name": "Upload Product Space",
+          "request": {
+            "method": "POST",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "image",
+                  "type": "file",
+                  "src": []
+                },
+                {
+                  "key": "title",
+                  "value": "Phòng khách Japandi",
+                  "type": "text"
+                },
+                {
+                  "key": "roomType",
+                  "value": "living_room",
+                  "type": "text"
+                },
+                {
+                  "key": "width",
+                  "value": "4.5",
+                  "type": "text"
+                },
+                {
+                  "key": "length",
+                  "value": "6.2",
+                  "type": "text"
+                },
+                {
+                  "key": "isPublic",
+                  "value": "true",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/product-spaces/admin/upload"
+          }
+        },
+        {
+          "name": "Update Product Space",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Phòng khách Contemporary\",\n  \"isPublic\": true,\n  \"isFeatured\": true\n}"
+            },
+            "url": "{{baseUrl}}/product-spaces/admin/{{productSpaceId}}"
+          }
+        },
+        {
+          "name": "Add Product Point",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productId\": \"{{productId}}\",\n  \"x\": 45,\n  \"y\": 60\n}"
+            },
+            "url": "{{baseUrl}}/product-spaces/admin/{{productSpaceId}}/points"
+          }
+        },
+        {
+          "name": "Update Product Point",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productId\": \"{{productId}}\",\n  \"x\": 50,\n  \"y\": 55\n}"
+            },
+            "url": "{{baseUrl}}/product-spaces/admin/{{productSpaceId}}/points/{{pointId}}"
+          }
+        },
+        {
+          "name": "Delete Product Point",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/product-spaces/admin/{{productSpaceId}}/points/{{pointId}}"
+          }
+        },
+        {
+          "name": "Public Showrooms",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/showrooms",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Preview Showroom",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/showrooms/{{showroomId}}",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Admin Showrooms",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/showrooms/admin/all"
+          }
+        },
+        {
+          "name": "Create Showroom",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Contemporary Living 3D\",\n  \"description\": \"Showroom phòng khách hiện đại\"\n}"
+            },
+            "url": "{{baseUrl}}/showrooms/admin"
+          }
+        },
+        {
+          "name": "Update Showroom",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"PUBLISHED\"\n}"
+            },
+            "url": "{{baseUrl}}/showrooms/admin/{{showroomId}}"
+          }
+        },
+        {
+          "name": "Upload Environment Model",
+          "request": {
+            "method": "POST",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "model",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/showrooms/admin/{{showroomId}}/environment"
+          }
+        },
+        {
+          "name": "Upload Product 3D Model",
+          "request": {
+            "method": "POST",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "model",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/showrooms/admin/models/upload"
+          }
+        },
+        {
+          "name": "Add Showroom Item",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productId\": \"{{productId}}\",\n  \"modelUrl\": \"https://example.com/sofa.glb\",\n  \"position\": {\"x\":0,\"y\":0,\"z\":0},\n  \"rotation\": {\"x\":0,\"y\":45,\"z\":0},\n  \"scale\": {\"x\":1,\"y\":1,\"z\":1}\n}"
+            },
+            "url": "{{baseUrl}}/showrooms/admin/{{showroomId}}/items"
+          }
+        },
+        {
+          "name": "Update Showroom Transform",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"position\": {\"x\":1,\"y\":0,\"z\":2},\n  \"rotation\": {\"x\":0,\"y\":90,\"z\":0},\n  \"scale\": {\"x\":1.2,\"y\":1.2,\"z\":1.2}\n}"
+            },
+            "url": "{{baseUrl}}/showrooms/admin/{{showroomId}}/items/{{showroomItemId}}"
+          }
+        },
+        {
+          "name": "Delete Showroom Item",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/showrooms/admin/{{showroomId}}/items/{{showroomItemId}}"
+          }
+        },
+        {
+          "name": "Delete One Moodboard",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/product-spaces/admin/{{moodboardDeleteId}}",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "Permanently deletes the selected moodboard and embedded points. Catalog products and cloud images are preserved. Set moodboardDeleteId manually; use test data only.",
+            "header": []
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Deletion succeeded', () => pm.response.to.have.status(200));",
+                  "pm.test('Returns deletedCount', () => pm.expect(pm.response.json().deletedCount).to.be.a('number'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Delete Multiple Moodboards",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/product-spaces/admin/bulk-delete",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "Permanently deletes 1-100 moodboards. Set moodboardDeleteIds to a JSON array. Supports MongoDB IDs and legacy string IDs. Already absent IDs are skipped. HTTP 201 is NestJS default for this POST.",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ids\": {{moodboardDeleteIds}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Deletion succeeded', () => pm.response.to.have.status(201));",
+                  "pm.test('Returns deletedCount', () => pm.expect(pm.response.json().deletedCount).to.be.a('number'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Replace Moodboard Image",
+          "request": {
+            "method": "PATCH",
+            "url": "{{baseUrl}}/product-spaces/admin/{{productSpaceId}}/image",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "image",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            },
+            "description": "Choose an image file up to 10 MB. Preserves product points."
+          }
+        }
       ]
     },
     {
       "name": "15 AI Product Scanner Admin (Updated)",
-      "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminAccessToken}}", "type": "string" }] },
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{adminAccessToken}}",
+            "type": "string"
+          }
+        ]
+      },
       "item": [
-        { "name":"Scanner History", "request":{"method":"GET","url":"{{baseUrl}}/ai-scanner/admin/history?needsReview=true"} },
-        { "name":"Scanner Statistics", "request":{"method":"GET","url":"{{baseUrl}}/ai-scanner/admin/stats"} },
-        { "name":"Scanner API Errors", "request":{"method":"GET","url":"{{baseUrl}}/ai-scanner/admin/errors"} },
-        { "name":"Scanner Configuration", "request":{"method":"GET","url":"{{baseUrl}}/ai-scanner/admin/config"} },
-        { "name":"Update Scanner Configuration", "request":{"method":"PATCH","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\n  \"model\": \"gemini-3.6-flash\",\n  \"confidenceThreshold\": 0.6,\n  \"isActive\": true\n}"},"url":"{{baseUrl}}/ai-scanner/admin/config"} },
-        { "name":"Correct and Link Detection", "request":{"method":"PATCH","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\n  \"name\": \"Sofa vải module\",\n  \"category\": \"Sofa\",\n  \"linkedProductId\": \"{{productId}}\"\n}"},"url":"{{baseUrl}}/ai-scanner/admin/{{scanResultId}}/detections/{{detectionId}}"} }
+        {
+          "name": "Scanner History",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/ai-scanner/admin/history?needsReview=true"
+          }
+        },
+        {
+          "name": "Scanner Statistics",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/ai-scanner/admin/stats"
+          }
+        },
+        {
+          "name": "Scanner API Errors",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/ai-scanner/admin/errors"
+          }
+        },
+        {
+          "name": "Scanner Configuration",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/ai-scanner/admin/config"
+          }
+        },
+        {
+          "name": "Update Scanner Configuration",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"model\": \"gemini-3.6-flash\",\n  \"confidenceThreshold\": 0.6,\n  \"isActive\": true\n}"
+            },
+            "url": "{{baseUrl}}/ai-scanner/admin/config"
+          }
+        },
+        {
+          "name": "Correct and Link Detection",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Sofa vải module\",\n  \"category\": \"Sofa\",\n  \"linkedProductId\": \"{{productId}}\"\n}"
+            },
+            "url": "{{baseUrl}}/ai-scanner/admin/{{scanResultId}}/detections/{{detectionId}}"
+          }
+        }
       ]
     },
     {
       "name": "16 Reviews (Updated)",
       "item": [
-        { "name":"Public Product Reviews", "request":{"auth":{"type":"noauth"},"method":"GET","url":"{{baseUrl}}/reviews?productId={{productId}}"} },
-        { "name":"Create Review", "request":{"auth":{"type":"bearer","bearer":[{"key":"token","value":"{{userAccessToken}}","type":"string"}]},"method":"POST","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\n  \"productId\": \"{{productId}}\",\n  \"rating\": 5,\n  \"content\": \"Sản phẩm đẹp và đúng mô tả\",\n  \"images\": [\"https://example.com/review.jpg\"]\n}"},"url":"{{baseUrl}}/reviews"} },
-        { "name":"Report Review", "request":{"auth":{"type":"bearer","bearer":[{"key":"token","value":"{{userAccessToken}}","type":"string"}]},"method":"POST","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\n  \"reason\": \"Nội dung spam hoặc không phù hợp\"\n}"},"url":"{{baseUrl}}/reviews/{{reviewId}}/reports"} },
-        { "name":"Admin All Reviews", "request":{"auth":{"type":"bearer","bearer":[{"key":"token","value":"{{adminAccessToken}}","type":"string"}]},"method":"GET","url":"{{baseUrl}}/reviews/admin/all?reported=true"} },
-        { "name":"Hide Review", "request":{"auth":{"type":"bearer","bearer":[{"key":"token","value":"{{adminAccessToken}}","type":"string"}]},"method":"PATCH","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\n  \"reason\": \"Nội dung vi phạm quy định cộng đồng\"\n}"},"url":"{{baseUrl}}/reviews/admin/{{reviewId}}/hide"} },
-        { "name":"Delete Spam Review", "request":{"auth":{"type":"bearer","bearer":[{"key":"token","value":"{{adminAccessToken}}","type":"string"}]},"method":"PATCH","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\n  \"reason\": \"Spam quảng cáo ngoài nền tảng\"\n}"},"url":"{{baseUrl}}/reviews/admin/{{reviewId}}/delete-spam"} },
-        { "name":"Restore Review", "request":{"auth":{"type":"bearer","bearer":[{"key":"token","value":"{{adminAccessToken}}","type":"string"}]},"method":"PATCH","url":"{{baseUrl}}/reviews/admin/{{reviewId}}/restore"} },
-        { "name":"Resolve Review Report", "request":{"auth":{"type":"bearer","bearer":[{"key":"token","value":"{{adminAccessToken}}","type":"string"}]},"method":"PATCH","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\n  \"reportId\": \"{{reportId}}\",\n  \"resolution\": \"Đã kiểm tra và xử lý nội dung\"\n}"},"url":"{{baseUrl}}/reviews/admin/{{reviewId}}/reports/resolve"} }
+        {
+          "name": "Public Product Reviews",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "url": "{{baseUrl}}/reviews?productId={{productId}}"
+          }
+        },
+        {
+          "name": "Create Review",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{userAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productId\": \"{{productId}}\",\n  \"rating\": 5,\n  \"content\": \"Sản phẩm đẹp và đúng mô tả\",\n  \"images\": [\"https://example.com/review.jpg\"]\n}"
+            },
+            "url": "{{baseUrl}}/reviews"
+          }
+        },
+        {
+          "name": "Report Review",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{userAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Nội dung spam hoặc không phù hợp\"\n}"
+            },
+            "url": "{{baseUrl}}/reviews/{{reviewId}}/reports"
+          }
+        },
+        {
+          "name": "Admin All Reviews",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "url": "{{baseUrl}}/reviews/admin/all?reported=true"
+          }
+        },
+        {
+          "name": "Hide Review",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Nội dung vi phạm quy định cộng đồng\"\n}"
+            },
+            "url": "{{baseUrl}}/reviews/admin/{{reviewId}}/hide"
+          }
+        },
+        {
+          "name": "Delete Spam Review",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Spam quảng cáo ngoài nền tảng\"\n}"
+            },
+            "url": "{{baseUrl}}/reviews/admin/{{reviewId}}/delete-spam"
+          }
+        },
+        {
+          "name": "Restore Review",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "url": "{{baseUrl}}/reviews/admin/{{reviewId}}/restore"
+          }
+        },
+        {
+          "name": "Resolve Review Report",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reportId\": \"{{reportId}}\",\n  \"resolution\": \"Đã kiểm tra và xử lý nội dung\"\n}"
+            },
+            "url": "{{baseUrl}}/reviews/admin/{{reviewId}}/reports/resolve"
+          }
+        }
       ]
     },
     {
       "name": "17 Support Tickets (Updated)",
-      "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{userAccessToken}}", "type": "string" }] },
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{userAccessToken}}",
+            "type": "string"
+          }
+        ]
+      },
       "item": [
-        { "name":"Create Support Ticket", "request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\n  \"title\": \"Sofa bị rách khi giao hàng\",\n  \"type\": \"ORDER_COMPLAINT\",\n  \"message\": \"Sản phẩm bị rách khi vừa nhận hàng\",\n  \"orderId\": \"{{orderId}}\",\n  \"supplierId\": \"{{supplierId}}\"\n}"},"url":"{{baseUrl}}/support-tickets"} },
-        { "name":"My Support Tickets", "request":{"method":"GET","url":"{{baseUrl}}/support-tickets/mine"} },
-        { "name":"User Reply Ticket", "request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\n  \"content\": \"Tôi gửi thêm thông tin cho bộ phận hỗ trợ\"\n}"},"url":"{{baseUrl}}/support-tickets/{{ticketId}}/replies"} },
-        { "name":"Admin All Tickets", "auth":{"type":"bearer","bearer":[{"key":"token","value":"{{adminAccessToken}}","type":"string"}]},"request":{"method":"GET","url":"{{baseUrl}}/support-tickets/admin/all?status=OPEN&priority=URGENT"} },
-        { "name":"Admin Reply Ticket", "auth":{"type":"bearer","bearer":[{"key":"token","value":"{{adminAccessToken}}","type":"string"}]},"request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\n  \"content\": \"DECOHO đã tiếp nhận và đang xử lý yêu cầu\"\n}"},"url":"{{baseUrl}}/support-tickets/admin/{{ticketId}}/replies"} },
-        { "name":"Assign Ticket Staff", "auth":{"type":"bearer","bearer":[{"key":"token","value":"{{adminAccessToken}}","type":"string"}]},"request":{"method":"PATCH","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\n  \"staffId\": \"{{staffId}}\"\n}"},"url":"{{baseUrl}}/support-tickets/admin/{{ticketId}}/assign"} },
-        { "name":"Set Ticket Priority", "auth":{"type":"bearer","bearer":[{"key":"token","value":"{{adminAccessToken}}","type":"string"}]},"request":{"method":"PATCH","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\n  \"priority\": \"URGENT\"\n}"},"url":"{{baseUrl}}/support-tickets/admin/{{ticketId}}/priority"} },
-        { "name":"Update Ticket Status", "auth":{"type":"bearer","bearer":[{"key":"token","value":"{{adminAccessToken}}","type":"string"}]},"request":{"method":"PATCH","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\n  \"status\": \"IN_PROGRESS\",\n  \"note\": \"Đã tiếp nhận xử lý\"\n}"},"url":"{{baseUrl}}/support-tickets/admin/{{ticketId}}/status"} }
+        {
+          "name": "Create Support Ticket",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Sofa bị rách khi giao hàng\",\n  \"type\": \"ORDER_COMPLAINT\",\n  \"message\": \"Sản phẩm bị rách khi vừa nhận hàng\",\n  \"orderId\": \"{{orderId}}\",\n  \"supplierId\": \"{{supplierId}}\"\n}"
+            },
+            "url": "{{baseUrl}}/support-tickets"
+          }
+        },
+        {
+          "name": "My Support Tickets",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/support-tickets/mine"
+          }
+        },
+        {
+          "name": "User Reply Ticket",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": \"Tôi gửi thêm thông tin cho bộ phận hỗ trợ\"\n}"
+            },
+            "url": "{{baseUrl}}/support-tickets/{{ticketId}}/replies"
+          }
+        },
+        {
+          "name": "Admin All Tickets",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/support-tickets/admin/all?status=OPEN&priority=URGENT",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Admin Reply Ticket",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": \"DECOHO đã tiếp nhận và đang xử lý yêu cầu\"\n}"
+            },
+            "url": "{{baseUrl}}/support-tickets/admin/{{ticketId}}/replies",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Assign Ticket Staff",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"staffId\": \"{{staffId}}\"\n}"
+            },
+            "url": "{{baseUrl}}/support-tickets/admin/{{ticketId}}/assign",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Set Ticket Priority",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"priority\": \"URGENT\"\n}"
+            },
+            "url": "{{baseUrl}}/support-tickets/admin/{{ticketId}}/priority",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update Ticket Status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"IN_PROGRESS\",\n  \"note\": \"Đã tiếp nhận xử lý\"\n}"
+            },
+            "url": "{{baseUrl}}/support-tickets/admin/{{ticketId}}/status",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        }
       ]
     },
     {
       "name": "18 Website Content CMS (Updated)",
-      "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminAccessToken}}", "type": "string" }] },
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{adminAccessToken}}",
+            "type": "string"
+          }
+        ]
+      },
       "item": [
-        { "name":"Public Website Content", "auth":{"type":"noauth"}, "request":{"method":"GET","url":"{{baseUrl}}/website-content?type=BANNER"} },
-        { "name":"Public Content By Slug", "auth":{"type":"noauth"}, "request":{"method":"GET","url":"{{baseUrl}}/website-content/slug/chinh-sach-mua-hang"} },
-        { "name":"Admin Website Content", "request":{"method":"GET","url":"{{baseUrl}}/website-content/admin/all?type=BANNER"} },
-        { "name":"Create Website Content", "request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\n  \"type\": \"BANNER\",\n  \"title\": \"Không gian sống mang dấu ấn riêng\",\n  \"slug\": \"home-hero\",\n  \"content\": \"Khám phá nội thất được tuyển chọn cho ngôi nhà của bạn.\",\n  \"images\": [\"https://example.com/banner.jpg\"],\n  \"linkUrl\": \"https://decoho.vn/cua-hang\",\n  \"linkLabel\": \"Khám phá ngay\",\n  \"displayOrder\": 1,\n  \"status\": \"DRAFT\"\n}"},"url":"{{baseUrl}}/website-content/admin"} },
-        { "name":"Upload Website Content Image", "request":{"method":"POST","body":{"mode":"formdata","formdata":[{"key":"image","type":"file","src":[]}]},"url":"{{baseUrl}}/website-content/admin/images"} },
-        { "name":"Update and Publish Content", "request":{"method":"PATCH","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\n  \"status\": \"PUBLISHED\",\n  \"seoTitle\": \"Nội thất DECOHO\",\n  \"seoDescription\": \"Khám phá không gian sống và sản phẩm nội thất DECOHO.\"\n}"},"url":"{{baseUrl}}/website-content/admin/{{websiteContentId}}"} },
-        { "name":"Reorder Website Content", "request":{"method":"PATCH","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\n  \"items\": [{\"id\":\"{{websiteContentId}}\",\"displayOrder\":1}]\n}"},"url":"{{baseUrl}}/website-content/admin/reorder"} },
-        { "name":"Delete Website Content", "request":{"method":"DELETE","url":"{{baseUrl}}/website-content/admin/{{websiteContentId}}"} }
+        {
+          "name": "Public Website Content",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/website-content?type=BANNER",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Public Content By Slug",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/website-content/slug/chinh-sach-mua-hang",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Admin Website Content",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/website-content/admin/all?type=BANNER"
+          }
+        },
+        {
+          "name": "Create Website Content",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"BANNER\",\n  \"title\": \"Không gian sống mang dấu ấn riêng\",\n  \"slug\": \"home-hero\",\n  \"content\": \"Khám phá nội thất được tuyển chọn cho ngôi nhà của bạn.\",\n  \"images\": [\"https://example.com/banner.jpg\"],\n  \"linkUrl\": \"https://decoho.vn/cua-hang\",\n  \"linkLabel\": \"Khám phá ngay\",\n  \"displayOrder\": 1,\n  \"status\": \"DRAFT\"\n}"
+            },
+            "url": "{{baseUrl}}/website-content/admin"
+          }
+        },
+        {
+          "name": "Upload Website Content Image",
+          "request": {
+            "method": "POST",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "image",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/website-content/admin/images"
+          }
+        },
+        {
+          "name": "Update and Publish Content",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"PUBLISHED\",\n  \"seoTitle\": \"Nội thất DECOHO\",\n  \"seoDescription\": \"Khám phá không gian sống và sản phẩm nội thất DECOHO.\"\n}"
+            },
+            "url": "{{baseUrl}}/website-content/admin/{{websiteContentId}}"
+          }
+        },
+        {
+          "name": "Reorder Website Content",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"items\": [{\"id\":\"{{websiteContentId}}\",\"displayOrder\":1}]\n}"
+            },
+            "url": "{{baseUrl}}/website-content/admin/reorder"
+          }
+        },
+        {
+          "name": "Delete Website Content",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/website-content/admin/{{websiteContentId}}"
+          }
+        }
       ]
     },
     {
@@ -2632,7 +3878,9 @@
         {
           "name": "Public Community Posts",
           "request": {
-            "auth": { "type": "noauth" },
+            "auth": {
+              "type": "noauth"
+            },
             "method": "GET",
             "url": "{{baseUrl}}/community/posts?tab=for-you&page=1&limit=10"
           }
@@ -2640,7 +3888,16 @@
         {
           "name": "Authenticated Community Feed",
           "request": {
-            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{userAccessToken}}", "type": "string" }] },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{userAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
             "method": "GET",
             "url": "{{baseUrl}}/community/feed?tab=for-you&page=1&limit=10"
           }
@@ -2648,7 +3905,16 @@
         {
           "name": "Following Community Feed",
           "request": {
-            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{userAccessToken}}", "type": "string" }] },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{userAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
             "method": "GET",
             "url": "{{baseUrl}}/community/feed?tab=following&page=1&limit=10"
           }
@@ -2656,7 +3922,9 @@
         {
           "name": "Trending Community Feed",
           "request": {
-            "auth": { "type": "noauth" },
+            "auth": {
+              "type": "noauth"
+            },
             "method": "GET",
             "url": "{{baseUrl}}/community/posts?tab=trending&page=1&limit=10"
           }
@@ -2664,7 +3932,9 @@
         {
           "name": "Community Creators",
           "request": {
-            "auth": { "type": "noauth" },
+            "auth": {
+              "type": "noauth"
+            },
             "method": "GET",
             "url": "{{baseUrl}}/community/creators"
           }
@@ -2672,16 +3942,45 @@
         {
           "name": "Create Community Post",
           "request": {
-            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{userAccessToken}}", "type": "string" }] },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{userAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
             "method": "POST",
             "body": {
               "mode": "formdata",
               "formdata": [
-                { "key": "description", "value": "Góc phòng khách của mình sau khi được cải tạo", "type": "text" },
-                { "key": "roomType", "value": "Phòng khách", "type": "text" },
-                { "key": "hashtags", "value": "cozy,phongkhach,decoho", "type": "text" },
-                { "key": "before", "type": "file", "src": [] },
-                { "key": "after", "type": "file", "src": [] }
+                {
+                  "key": "description",
+                  "value": "Góc phòng khách của mình sau khi được cải tạo",
+                  "type": "text"
+                },
+                {
+                  "key": "roomType",
+                  "value": "Phòng khách",
+                  "type": "text"
+                },
+                {
+                  "key": "hashtags",
+                  "value": "cozy,phongkhach,decoho",
+                  "type": "text"
+                },
+                {
+                  "key": "before",
+                  "type": "file",
+                  "src": []
+                },
+                {
+                  "key": "after",
+                  "type": "file",
+                  "src": []
+                }
               ]
             },
             "url": "{{baseUrl}}/community/posts"
@@ -2690,7 +3989,16 @@
         {
           "name": "Like Community Post",
           "request": {
-            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{userAccessToken}}", "type": "string" }] },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{userAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
             "method": "POST",
             "url": "{{baseUrl}}/community/posts/{{communityPostId}}/like"
           }
@@ -2698,7 +4006,16 @@
         {
           "name": "Save Community Post",
           "request": {
-            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{userAccessToken}}", "type": "string" }] },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{userAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
             "method": "POST",
             "url": "{{baseUrl}}/community/posts/{{communityPostId}}/save"
           }
@@ -2706,17 +4023,43 @@
         {
           "name": "Comment Community Post",
           "request": {
-            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{userAccessToken}}", "type": "string" }] },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{userAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"content\": \"Không gian rất đẹp và ấm cúng!\"\n}" },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": \"Không gian rất đẹp và ấm cúng!\"\n}"
+            },
             "url": "{{baseUrl}}/community/posts/{{communityPostId}}/comments"
           }
         },
         {
           "name": "Follow Community Creator",
           "request": {
-            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{userAccessToken}}", "type": "string" }] },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{userAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
             "method": "POST",
             "url": "{{baseUrl}}/community/users/{{communityCreatorId}}/follow"
           }
@@ -2725,15 +4068,34 @@
     },
     {
       "name": "20 First Login Onboarding",
-      "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{userAccessToken}}", "type": "string" }] },
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{userAccessToken}}",
+            "type": "string"
+          }
+        ]
+      },
       "item": [
         {
           "name": "Login and Check Onboarding Status",
           "request": {
-            "auth": { "type": "noauth" },
+            "auth": {
+              "type": "noauth"
+            },
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}" },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}"
+            },
             "url": "{{baseUrl}}/auth/login",
             "description": "Response user.onboardingCompleted is false before the first survey and true after completing or skipping it. The collection stores userAccessToken automatically."
           }
@@ -2741,10 +4103,20 @@
         {
           "name": "Google Login",
           "request": {
-            "auth": { "type": "noauth" },
+            "auth": {
+              "type": "noauth"
+            },
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"credential\": \"{{googleCredential}}\"\n}" },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"credential\": \"{{googleCredential}}\"\n}"
+            },
             "url": "{{baseUrl}}/auth/google",
             "description": "Paste a fresh Google Identity Services ID token into googleCredential. The response includes onboardingCompleted."
           }
@@ -2761,7 +4133,12 @@
           "name": "Complete First Login Onboarding",
           "request": {
             "method": "PATCH",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"ageRange\": \"18-24\",\n  \"rooms\": [\"living-room\", \"bedroom\"],\n  \"styles\": [\"japandi\", \"minimal\"],\n  \"budget\": \"25m-75m\",\n  \"colors\": [\"sage-green\", \"peach\", \"beige\"],\n  \"helpOptions\": [\"shopping\", \"moodboards\", \"3d-planning\"]\n}"
@@ -2774,8 +4151,16 @@
           "name": "Skip First Login Onboarding",
           "request": {
             "method": "PATCH",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"skipped\": true\n}" },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"skipped\": true\n}"
+            },
             "url": "{{baseUrl}}/users/me/onboarding",
             "description": "Marks onboarding as handled without saving selections, so it will not appear on the next login."
           }
