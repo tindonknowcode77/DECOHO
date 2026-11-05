@@ -24,6 +24,7 @@ import { SearchModule } from './search/search.module';
 import { CommunityModule } from './community/community.module';
 import { UploadModule } from './upload/upload.module';
 import { MoodboardsModule } from './moodboards/moodboards.module';
+import { AffiliateModule } from './affiliate/affiliate.module';
 import { AppController } from './app.controller';
 
 function getRequiredEnv(name: string): string {
@@ -65,6 +66,7 @@ function getRequiredEnv(name: string): string {
     CommunityModule,
     UploadModule,
     MoodboardsModule,
+    AffiliateModule,
   ],
   controllers: [AppController],
 })
