@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
+import { User, UserSchema } from '../users/user.schema';
 import { AffiliateController } from './affiliate.controller';
 import { AffiliateService } from './affiliate.service';
 import {
@@ -16,6 +17,7 @@ import {
     MongooseModule.forFeature([
       { name: AffiliateClick.name, schema: AffiliateClickSchema },
       { name: AffiliateOrder.name, schema: AffiliateOrderSchema },
+      { name: User.name, schema: UserSchema },
     ]),
   ],
   controllers: [AffiliateController],
@@ -23,4 +25,3 @@ import {
   exports: [AffiliateService],
 })
 export class AffiliateModule {}
-

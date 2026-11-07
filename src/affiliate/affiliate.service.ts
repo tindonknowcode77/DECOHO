@@ -16,6 +16,7 @@ import {
   AffiliateOrder,
   AffiliateOrderDocument,
 } from './schemas/affiliate-order.schema';
+import { User, UserDocument } from '../users/user.schema';
 
 @Injectable()
 export class AffiliateService {
@@ -26,6 +27,8 @@ export class AffiliateService {
     private readonly clickModel: Model<AffiliateClickDocument>,
     @InjectModel(AffiliateOrder.name)
     private readonly orderModel: Model<AffiliateOrderDocument>,
+    @InjectModel(User.name)
+    private readonly userModel: Model<UserDocument>,
   ) {}
 
   /**
@@ -510,6 +513,63 @@ export class AffiliateService {
       unclaimedCount: summary.unclaimedCount,
       conversionRate: Math.round(conversionRate * 100) / 100,
       recentOrders,
+    };
+  }
+
+  // ===========================================================================
+  // 7. ADMIN: GÁN ĐƠN HÀNG THỦ CÔNG CHO NGƯỜI DÙNG
+  // ===========================================================================
+
+  async adminAssignOrder(orderId: string, userIdentifier: string) {
+    const cleanOrderId = orderId?.trim();
+    const cleanUserIdentifier = userIdentifier?.trim();
+
+    if (!cleanOrderId || !cleanUserIdentifier) {
+      throw new BadRequestException('Mã đơn hàng và thông tin người dùng không được để trống.');
+    }
+
+    const items = await this.orderModel.find({ orderId: cleanOrderId });
+    if (!items || items.length === 0) {
+      throw new NotFoundException(`Không tìm thấy đơn hàng Shopee với mã "${cleanOrderId}".`);
+    }
+
+    const user = this.isValidObjectId(cleanUserIdentifier)
+      ? await this.userModel.findById(cleanUserIdentifier).exec()
+      : await this.userModel
+          .findOne({ email: cleanUserIdentifier.toLowerCase() })
+          .exec();
+
+    if (!user) {
+      throw new NotFoundException(
+        `Không tìm thấy tài khoản người dùng với Email/ID "${cleanUserIdentifier}".`,
+      );
+    }
+
+    const now = new Date();
+    await this.orderModel.updateMany(
+      { orderId: cleanOrderId },
+      {
+        $set: {
+          userId: user._id,
+          isClaimed: true,
+          claimedAt: now,
+        },
+      },
+    );
+
+    const totalCommission = items.reduce((sum, item) => sum + (item.commission || 0), 0);
+
+    return {
+      success: true,
+      orderId: cleanOrderId,
+      itemsCount: items.length,
+      totalCommission,
+      assignedUser: {
+        _id: user._id.toString(),
+        fullName: user.fullName,
+        email: user.email,
+      },
+      message: `Đã gán đơn ${cleanOrderId} (${items.length} sản phẩm) cho ${user.fullName || user.email}.`,
     };
   }
 }

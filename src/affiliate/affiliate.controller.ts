@@ -23,6 +23,7 @@ import { Roles } from '../common/decorators/roles.decorator';
 import { Role } from '../common/enums/roles.enum';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { AffiliateService } from './affiliate.service';
+import { AdminAssignOrderDto } from './dto/admin-assign-order.dto';
 import { ClaimOrderDto } from './dto/claim-order.dto';
 import { GenerateLinkDto } from './dto/generate-link.dto';
 
@@ -192,6 +193,21 @@ export class AffiliateController {
       success: true,
       data: overview,
     };
+  }
+
+  // ===========================================================================
+  // 6. ADMIN: GÁN ĐƠN HÀNG THỦ CÔNG CHO NGƯỜI DÙNG
+  // ===========================================================================
+
+  @Post('admin-assign')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN, Role.SUPER_ADMIN)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Admin: Gán thủ công mã đơn hàng Shopee cho người dùng theo Email hoặc User ID',
+  })
+  async adminAssignOrder(@Body() dto: AdminAssignOrderDto) {
+    return this.affiliateService.adminAssignOrder(dto.orderId, dto.userIdentifier);
   }
 }
 
