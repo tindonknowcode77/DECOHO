@@ -22,10 +22,12 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { Role } from '../common/enums/roles.enum';
 import { RolesGuard } from '../common/guards/roles.guard';
+import { JwtService } from '@nestjs/jwt';
 import { AffiliateService } from './affiliate.service';
 import { AdminAssignOrderDto } from './dto/admin-assign-order.dto';
 import { ClaimOrderDto } from './dto/claim-order.dto';
 import { GenerateLinkDto } from './dto/generate-link.dto';
+import { TrackClickDto } from './dto/track-click.dto';
 
 type AuthedRequest = Request & {
   user?: {
@@ -39,7 +41,10 @@ type AuthedRequest = Request & {
 @ApiTags('Shopee Affiliate')
 @Controller('affiliate')
 export class AffiliateController {
-  constructor(private readonly affiliateService: AffiliateService) {}
+  constructor(
+    private readonly affiliateService: AffiliateService,
+    private readonly jwtService: JwtService,
+  ) {}
 
   /**
    * Helper: Trích xuất UserId an toàn từ Authed Request
@@ -208,6 +213,39 @@ export class AffiliateController {
   })
   async adminAssignOrder(@Body() dto: AdminAssignOrderDto) {
     return this.affiliateService.adminAssignOrder(dto.orderId, dto.userIdentifier);
+  }
+
+  // ===========================================================================
+  // 7. GHI NHẬN CLICK MUA SHOPEE TRỰC TIẾP TỪ WEB / MOBILE (LIVE CLICK)
+  // ===========================================================================
+
+  @Post('track-click')
+  @ApiOperation({
+    summary: 'Ghi nhận 1 lượt click mua Shopee từ người dùng (đăng nhập hoặc khách vãng lai)',
+  })
+  async trackClick(@Req() req: Request, @Body() dto: TrackClickDto) {
+    let userId: string | null = null;
+    const authHeader = req.headers?.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const token = authHeader.substring(7);
+      try {
+        const decoded = this.jwtService.decode(token) as {
+          sub?: string;
+          _id?: string;
+          userId?: string;
+        };
+        userId = decoded?.sub || decoded?._id || decoded?.userId || null;
+      } catch {}
+    }
+
+    return this.affiliateService.recordLiveClick({
+      userId,
+      productId: dto.productId,
+      productName: dto.productName,
+      productLink: dto.productLink,
+      source: dto.source || 'web',
+      referrer: (req.headers?.referer as string) || '',
+    });
   }
 }
 

@@ -16,6 +16,7 @@ import {
   AffiliateOrder,
   AffiliateOrderDocument,
 } from './schemas/affiliate-order.schema';
+import { Product, ProductDocument } from '../products/product.schema';
 import { User, UserDocument } from '../users/user.schema';
 
 @Injectable()
@@ -29,6 +30,8 @@ export class AffiliateService {
     private readonly orderModel: Model<AffiliateOrderDocument>,
     @InjectModel(User.name)
     private readonly userModel: Model<UserDocument>,
+    @InjectModel(Product.name)
+    private readonly productModel: Model<ProductDocument>,
   ) {}
 
   /**
@@ -504,6 +507,15 @@ export class AffiliateService {
       .limit(25)
       .lean();
 
+    // Lấy 30 lượt click mới nhất có kèm thông tin User và Product
+    const recentClicks = await this.clickModel
+      .find()
+      .populate('userId', 'fullName email')
+      .populate('productId', 'name image category')
+      .sort({ clickTime: -1, createdAt: -1 })
+      .limit(30)
+      .lean();
+
     return {
       totalClicks,
       totalOrders,
@@ -513,6 +525,71 @@ export class AffiliateService {
       unclaimedCount: summary.unclaimedCount,
       conversionRate: Math.round(conversionRate * 100) / 100,
       recentOrders,
+      recentClicks,
+    };
+  }
+
+  /**
+   * Ghi nhận 1 lượt click mua Shopee trực tiếp từ Website / Mobile
+   */
+  async recordLiveClick(params: {
+    userId?: string | null;
+    productId?: string;
+    productName?: string;
+    productLink?: string;
+    referrer?: string;
+    source?: string;
+  }) {
+    const clickId = `clk_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+    const now = new Date();
+
+    let userObjectId: Types.ObjectId | null = null;
+    if (params.userId && this.isValidObjectId(params.userId)) {
+      userObjectId = new Types.ObjectId(params.userId);
+    }
+
+    let productObjectId: Types.ObjectId | null = null;
+    let productName = params.productName?.trim() || '';
+    let targetUrl = params.productLink?.trim() || '';
+
+    if (params.productId && this.isValidObjectId(params.productId)) {
+      productObjectId = new Types.ObjectId(params.productId);
+      try {
+        const prod = await this.productModel.findByIdAndUpdate(
+          productObjectId,
+          { $inc: { shopeeClicks: 1 } },
+          { new: true },
+        );
+        if (prod) {
+          if (!productName) productName = prod.name;
+          if (!targetUrl && prod.productLink) targetUrl = prod.productLink;
+        }
+      } catch (err) {
+        this.logger.warn(`Lỗi cập nhật shopeeClicks cho sản phẩm ${params.productId}: ${err}`);
+      }
+    }
+
+    const click = await this.clickModel.create({
+      clickId,
+      clickTime: now,
+      userId: userObjectId,
+      subId: userObjectId ? userObjectId.toString() : '',
+      productId: productObjectId,
+      productName,
+      targetUrl,
+      referrer: params.referrer || '',
+      clickRegion: params.source || 'web',
+    });
+
+    this.logger.log(
+      `Đã ghi nhận 1 click Shopee: [${clickId}] Sản phẩm: "${productName || 'Không tên'}", User: ${userObjectId ? userObjectId.toString() : 'Khách vãng lai'}`,
+    );
+
+    return {
+      success: true,
+      clickId: click.clickId,
+      clickTime: click.clickTime,
+      totalClicks: await this.clickModel.countDocuments(),
     };
   }
 

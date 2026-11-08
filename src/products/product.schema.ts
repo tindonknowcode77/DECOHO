@@ -71,6 +71,9 @@ export class Product {
   @Prop({ min: 0, default: 0 })
   soldCount: number;
 
+  @Prop({ min: 0, default: 0, index: true })
+  shopeeClicks: number;
+
   @Prop({ type: String, enum: Object.values(ProductStatus), default: ProductStatus.Draft, index: true })
   status: ProductStatus;
 

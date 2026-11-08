@@ -14,6 +14,15 @@ export class AffiliateClick {
   @Prop({ type: Types.ObjectId, ref: 'User', default: null, index: true })
   userId: Types.ObjectId | null;
 
+  @Prop({ type: Types.ObjectId, ref: 'Product', default: null, index: true })
+  productId?: Types.ObjectId | null;
+
+  @Prop({ trim: true, default: '' })
+  productName?: string;
+
+  @Prop({ trim: true, default: '' })
+  targetUrl?: string;
+
   @Prop({ trim: true, default: '' })
   subId: string;
 
