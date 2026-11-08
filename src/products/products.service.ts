@@ -71,7 +71,7 @@ export class ProductsService {
       const search = new RegExp(escaped, 'i');
       filter.$or = [{ name: search }, { category: search }, { styleTags: search }];
     }
-    return this.productModel.find(filter).sort({ createdAt: -1 }).exec();
+    return this.productModel.find(filter).sort({ createdAt: -1, _id: -1 }).exec();
   }
 
   async updateForAdmin(
