@@ -55,6 +55,26 @@ export class FeedbackController {
     };
   }
 
+  @Get('public')
+  @ApiOperation({
+    summary: 'Lấy danh sách đánh giá & góp ý công khai cho tất cả mọi người cùng xem',
+  })
+  async getPublicFeedbacks(
+    @Query('type') type?: string,
+    @Query('limit') limit?: number,
+    @Query('page') page?: number,
+  ) {
+    const data = await this.feedbackService.getPublicFeedbacks({
+      type,
+      limit,
+      page,
+    });
+    return {
+      success: true,
+      data,
+    };
+  }
+
   @Get('product/:productId')
   @ApiOperation({
     summary: 'Lấy danh sách đánh giá sao và phản hồi của một sản phẩm',

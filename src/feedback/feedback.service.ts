@@ -119,6 +119,56 @@ export class FeedbackService {
     };
   }
 
+  async getPublicFeedbacks(query: {
+    type?: string;
+    limit?: number;
+    page?: number;
+  }) {
+    const filter: Record<string, any> = {
+      status: { $ne: FeedbackStatus.ARCHIVED },
+    };
+
+    if (query.type && query.type !== "ALL") {
+      filter.type = query.type;
+    }
+
+    const page = Math.max(1, Number(query.page) || 1);
+    const limit = Math.min(50, Math.max(1, Number(query.limit) || 20));
+    const skip = (page - 1) * limit;
+
+    const [items, total, stats] = await Promise.all([
+      this.feedbackModel
+        .find(filter)
+        .select("type rating content tags productName userName createdAt")
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      this.feedbackModel.countDocuments(filter),
+      this.feedbackModel.aggregate([
+        { $match: filter },
+        {
+          $group: {
+            _id: null,
+            avgRating: { $avg: "$rating" },
+          },
+        },
+      ]),
+    ]);
+
+    const averageRating =
+      stats[0]?.avgRating ? Math.round(stats[0].avgRating * 10) / 10 : 5.0;
+
+    return {
+      items,
+      total,
+      averageRating,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
+  }
+
   async getAdminFeedback(query: {
     type?: string;
     rating?: number;
