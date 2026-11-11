@@ -38,6 +38,7 @@ export class ProductsService {
       category: createProductDto.category?.trim().toLowerCase(),
       image: createProductDto.image?.trim() ? this.normalizeHttpUrl(createProductDto.image) : undefined,
       productLink: createProductDto.productLink?.trim() ? this.normalizeHttpUrl(createProductDto.productLink) : undefined,
+      model3dUrl: createProductDto.model3dUrl?.trim() ? this.normalizeHttpUrl(createProductDto.model3dUrl) : undefined,
       styleTags: (createProductDto.styleTags ?? []).map((tag) =>
         tag.trim().toLowerCase(),
       ),
@@ -158,6 +159,11 @@ export class ProductsService {
     }
     if (updateProductDto.productLink !== undefined) {
       update.productLink = this.normalizeHttpUrl(updateProductDto.productLink);
+    }
+    if (updateProductDto.model3dUrl !== undefined) {
+      update.model3dUrl = updateProductDto.model3dUrl.trim()
+        ? this.normalizeHttpUrl(updateProductDto.model3dUrl)
+        : undefined;
     }
     if (updateProductDto.styleTags !== undefined) {
       update.styleTags = updateProductDto.styleTags.map((tag) =>

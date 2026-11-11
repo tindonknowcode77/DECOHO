@@ -132,6 +132,9 @@ export class Product {
 
   @Prop({ trim: true, maxlength: 1000 })
   productLink?: string;
+
+  @Prop({ trim: true, maxlength: 1000 })
+  model3dUrl?: string;
 }
 
 export const ProductSchema = SchemaFactory.createForClass(Product);

@@ -196,4 +196,13 @@ export class CreateProductDto {
   })
   @MaxLength(1000)
   productLink?: string;
+
+  @ApiPropertyOptional({
+    example: 'https://res.cloudinary.com/.../desk.glb',
+    description: '3D model (.glb/.gltf) URL for interactive preview.',
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(1000)
+  model3dUrl?: string;
 }
