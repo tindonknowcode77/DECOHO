@@ -205,8 +205,17 @@ export class AuthService {
   }
 
   async googleLogin(credential: string): Promise<AuthResponse> {
-    const clientId = process.env.GOOGLE_CLIENT_ID ?? process.env.VITE_GOOGLE_CLIENT_ID;
-    if (!clientId) {
+    const allowedClientIds = [
+      process.env.GOOGLE_CLIENT_IDS,
+      process.env.GOOGLE_CLIENT_ID,
+      process.env.VITE_GOOGLE_CLIENT_ID,
+    ]
+      .filter((value): value is string => Boolean(value?.trim()))
+      .flatMap((value) => value.split(","))
+      .map((id) => id.trim())
+      .filter(Boolean);
+
+    if (allowedClientIds.length === 0) {
       throw new InternalServerErrorException('GOOGLE_CLIENT_ID is not configured');
     }
 
@@ -223,7 +232,12 @@ export class AuthService {
     if (!response.ok) throw new UnauthorizedException('Invalid Google ID token');
     const profile = (await response.json()) as GoogleTokenInfo;
     const issuerIsValid = profile.iss === 'accounts.google.com' || profile.iss === 'https://accounts.google.com';
-    const isValid = profile.aud === clientId && profile.email_verified === 'true' && Boolean(profile.email && profile.sub) && issuerIsValid && Number(profile.exp ?? 0) * 1000 > Date.now();
+    const isValid =
+      Boolean(profile.aud && allowedClientIds.includes(profile.aud)) &&
+      profile.email_verified === 'true' &&
+      Boolean(profile.email && profile.sub) &&
+      issuerIsValid &&
+      Number(profile.exp ?? 0) * 1000 > Date.now();
     if (!isValid || !profile.email || !profile.sub) {
       throw new UnauthorizedException('Google account could not be verified');
     }
