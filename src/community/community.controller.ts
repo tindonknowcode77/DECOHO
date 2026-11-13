@@ -239,6 +239,34 @@ export class CommunityController {
     return this.service.toggleFollow(this.user(req), id);
   }
 
+  @Get('notifications')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  notifications(@Req() req: AuthRequest, @Query('page') page = '1', @Query('limit') limit = '20') {
+    return this.service.getNotifications(this.user(req), Number(page) || 1, Number(limit) || 20);
+  }
+
+  @Get('notifications/unread-count')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  unreadNotificationCount(@Req() req: AuthRequest) {
+    return this.service.getUnreadNotificationCount(this.user(req));
+  }
+
+  @Patch('notifications/read-all')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  markAllNotificationsRead(@Req() req: AuthRequest) {
+    return this.service.markAllNotificationsRead(this.user(req));
+  }
+
+  @Patch('notifications/:id/read')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  markNotificationRead(@Req() req: AuthRequest, @Param('id') id: string) {
+    return this.service.markNotificationRead(this.user(req), id);
+  }
+
   private user(req: AuthRequest) {
     if (!req.user?.sub) throw new UnauthorizedException();
     return req.user.sub;

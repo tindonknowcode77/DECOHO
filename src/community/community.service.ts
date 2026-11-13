@@ -1,9 +1,17 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException, Optional } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { CloudinaryService } from '../cloudinary/cloudinary.service';
 import { CreateCommunityCommentDto, CreateCommunityPostDto } from './dto/community.dto';
-import { CommunityFollow, CommunityFollowDocument, CommunityPost, CommunityPostDocument } from './community.schema';
+import {
+  CommunityFollow,
+  CommunityFollowDocument,
+  CommunityNotification,
+  CommunityNotificationDocument,
+  CommunityNotificationType,
+  CommunityPost,
+  CommunityPostDocument,
+} from './community.schema';
 
 const MAX_MEDIA = 10;
 
@@ -13,6 +21,7 @@ export class CommunityService {
     @InjectModel(CommunityPost.name) private readonly posts: Model<CommunityPostDocument>,
     @InjectModel(CommunityFollow.name) private readonly follows: Model<CommunityFollowDocument>,
     private readonly cloudinary: CloudinaryService,
+    @Optional() @InjectModel(CommunityNotification.name) private readonly notifications?: Model<CommunityNotificationDocument>,
   ) {}
 
   async adminPosts(q = '', status = 'all', page = 1) {
@@ -116,6 +125,8 @@ export class CommunityService {
       media: uploaded,
     });
 
+    await this.notifyFollowersOnNewPost(userId, String(post._id), dto.description);
+
     // Return the same populated shape as the feed before the UI inserts the post.
     return this.getById(String(post._id), userId);
   }
@@ -152,6 +163,33 @@ export class CommunityService {
       updated = await this.posts.updateOne(query, { $set: { [`${arrayPath}.$[r].type`]: type } }, { arrayFilters: [{ 'r.userId': oid }] }).exec();
     }
     if (!updated.acknowledged) throw new NotFoundException('Reaction update failed');
+    if (type !== null) {
+      if (commentId) {
+        const targetComment = (post.comments as unknown as Array<{ _id: Types.ObjectId; userId: Types.ObjectId; content?: string }>).find(
+          (c) => c._id.toString() === commentId,
+        );
+        if (targetComment?.userId) {
+          await this.createNotification({
+            recipientId: String(targetComment.userId),
+            actorId: userId,
+            type: 'comment_reaction',
+            postId,
+            commentId,
+            reactionType: type,
+            previewText: targetComment.content,
+          });
+        }
+      } else if (post.userId) {
+        await this.createNotification({
+          recipientId: String(post.userId),
+          actorId: userId,
+          type: 'post_reaction',
+          postId,
+          reactionType: type,
+          previewText: post.description,
+        });
+      }
+    }
     return this.reactionSummary(postId, commentId, userId, type);
   }
 
@@ -195,6 +233,36 @@ export class CommunityService {
       await this.posts.updateOne({ _id: postId, 'comments._id': new Types.ObjectId(dto.parentId) }, { $inc: { 'comments.$.replyCount': 1 } }).exec();
     }
     const last = post.comments.at(-1);
+    const createdCommentId = last && (last as unknown as { _id?: Types.ObjectId })._id ? String((last as unknown as { _id: Types.ObjectId })._id) : undefined;
+    const parentComment = dto.parentId
+      ? (post.comments as unknown as Array<{ _id: Types.ObjectId; userId?: { _id?: Types.ObjectId } | Types.ObjectId }>).find(
+          (c) => c._id.toString() === dto.parentId,
+        )
+      : undefined;
+    const parentOwnerId = parentComment?.userId
+      ? String((parentComment.userId as { _id?: Types.ObjectId })._id ?? parentComment.userId)
+      : undefined;
+
+    if (parentOwnerId) {
+      await this.createNotification({
+        recipientId: parentOwnerId,
+        actorId: userId,
+        type: 'comment_reply',
+        postId,
+        commentId: createdCommentId,
+        previewText: dto.content,
+      });
+    }
+    if (post.userId && String(post.userId) !== parentOwnerId) {
+      await this.createNotification({
+        recipientId: String(post.userId),
+        actorId: userId,
+        type: 'post_comment',
+        postId,
+        commentId: createdCommentId,
+        previewText: dto.content,
+      });
+    }
     return this.commentView(last as unknown as Record<string, unknown>, userId);
   }
 
@@ -292,6 +360,11 @@ export class CommunityService {
     const existing = await this.follows.findOneAndDelete(query).exec();
     if (existing) return { following: false };
     await this.follows.create(query);
+    await this.createNotification({
+      recipientId: targetId,
+      actorId: userId,
+      type: 'new_follower',
+    });
     return { following: true };
   }
 
@@ -368,5 +441,126 @@ export class CommunityService {
       reactionTotal: reactions.length,
       reactions: undefined,
     };
+  }
+
+  async getNotifications(userId: string, page = 1, limit = 20) {
+    this.id(userId);
+    if (!this.notifications) return { items: [], unreadCount: 0, total: 0, page, limit };
+    page = Math.max(1, page);
+    limit = Math.max(1, Math.min(50, limit));
+    const recipientId = new Types.ObjectId(userId);
+    const [items, total, unreadCount] = await Promise.all([
+      this.notifications
+        .find({ recipientId })
+        .populate('actorId', 'fullName avatar')
+        .sort({ createdAt: -1 })
+        .skip((page - 1) * limit)
+        .limit(limit)
+        .lean()
+        .exec(),
+      this.notifications.countDocuments({ recipientId }),
+      this.notifications.countDocuments({ recipientId, isRead: false }),
+    ]);
+    return { items, unreadCount, total, page, limit };
+  }
+
+  async getUnreadNotificationCount(userId: string) {
+    this.id(userId);
+    if (!this.notifications) return { unreadCount: 0 };
+    const unreadCount = await this.notifications.countDocuments({
+      recipientId: new Types.ObjectId(userId),
+      isRead: false,
+    });
+    return { unreadCount };
+  }
+
+  async markNotificationRead(userId: string, notificationId: string) {
+    this.id(userId);
+    this.id(notificationId);
+    if (!this.notifications) return { ok: true };
+    const updated = await this.notifications
+      .findOneAndUpdate(
+        { _id: new Types.ObjectId(notificationId), recipientId: new Types.ObjectId(userId) },
+        { $set: { isRead: true } },
+        { new: true },
+      )
+      .lean()
+      .exec();
+    if (!updated) throw new NotFoundException('Notification not found');
+    return updated;
+  }
+
+  async markAllNotificationsRead(userId: string) {
+    this.id(userId);
+    if (!this.notifications) return { ok: true };
+    await this.notifications
+      .updateMany({ recipientId: new Types.ObjectId(userId), isRead: false }, { $set: { isRead: true } })
+      .exec();
+    return { ok: true };
+  }
+
+  private truncatePreview(text?: string) {
+    const clean = (text ?? '').replace(/\s+/g, ' ').trim();
+    if (!clean) return undefined;
+    return clean.length > 140 ? `${clean.slice(0, 137)}...` : clean;
+  }
+
+  private async notifyFollowersOnNewPost(authorId: string, postId: string, description: string) {
+    if (!this.notifications) return;
+    try {
+      const followers = await this.follows
+        .find({ followingId: new Types.ObjectId(authorId) })
+        .select('followerId')
+        .lean()
+        .exec();
+      if (!followers.length) return;
+      const previewText = this.truncatePreview(description);
+      const actorOid = new Types.ObjectId(authorId);
+      const postOid = new Types.ObjectId(postId);
+      const docs = followers
+        .map((f) => String(f.followerId))
+        .filter((fid) => fid !== authorId)
+        .map((fid) => ({
+          recipientId: new Types.ObjectId(fid),
+          actorId: actorOid,
+          type: 'new_post' as CommunityNotificationType,
+          postId: postOid,
+          previewText,
+          isRead: false,
+        }));
+      if (docs.length > 0) {
+        await this.notifications.insertMany(docs);
+      }
+    } catch {
+      // Do not fail post publishing if notifications fail.
+    }
+  }
+
+  private async createNotification(input: {
+    recipientId: string;
+    actorId: string;
+    type: CommunityNotificationType;
+    postId?: string;
+    commentId?: string;
+    reactionType?: string;
+    previewText?: string;
+  }) {
+    if (!this.notifications) return;
+    if (!input.recipientId || input.recipientId === input.actorId) return;
+    if (!Types.ObjectId.isValid(input.recipientId) || !Types.ObjectId.isValid(input.actorId)) return;
+    try {
+      await this.notifications.create({
+        recipientId: new Types.ObjectId(input.recipientId),
+        actorId: new Types.ObjectId(input.actorId),
+        type: input.type,
+        ...(input.postId && Types.ObjectId.isValid(input.postId) ? { postId: new Types.ObjectId(input.postId) } : {}),
+        ...(input.commentId && Types.ObjectId.isValid(input.commentId) ? { commentId: new Types.ObjectId(input.commentId) } : {}),
+        ...(input.reactionType ? { reactionType: input.reactionType } : {}),
+        ...(input.previewText ? { previewText: this.truncatePreview(input.previewText) } : {}),
+        isRead: false,
+      });
+    } catch {
+      // Do not fail core community action if notification creation fails.
+    }
   }
 }

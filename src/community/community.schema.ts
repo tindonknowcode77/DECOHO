@@ -53,3 +53,45 @@ export class CommunityFollow {
 }
 export const CommunityFollowSchema = SchemaFactory.createForClass(CommunityFollow);
 CommunityFollowSchema.index({ followerId: 1, followingId: 1 }, { unique: true });
+
+export type CommunityNotificationType =
+  | 'new_post'
+  | 'post_reaction'
+  | 'post_comment'
+  | 'comment_reply'
+  | 'comment_reaction'
+  | 'new_follower';
+
+export type CommunityNotificationDocument = HydratedDocument<CommunityNotification>;
+@Schema({ collection: 'community_notifications', timestamps: true, versionKey: false })
+export class CommunityNotification {
+  @Prop({ type: Types.ObjectId, ref: 'User', required: true, index: true })
+  recipientId: Types.ObjectId;
+
+  @Prop({ type: Types.ObjectId, ref: 'User', required: true })
+  actorId: Types.ObjectId;
+
+  @Prop({
+    type: String,
+    required: true,
+    enum: ['new_post', 'post_reaction', 'post_comment', 'comment_reply', 'comment_reaction', 'new_follower'],
+  })
+  type: CommunityNotificationType;
+
+  @Prop({ type: Types.ObjectId, ref: 'CommunityPost' })
+  postId?: Types.ObjectId;
+
+  @Prop({ type: Types.ObjectId })
+  commentId?: Types.ObjectId;
+
+  @Prop({ trim: true, maxlength: 20 })
+  reactionType?: string;
+
+  @Prop({ trim: true, maxlength: 180 })
+  previewText?: string;
+
+  @Prop({ default: false, index: true })
+  isRead: boolean;
+}
+export const CommunityNotificationSchema = SchemaFactory.createForClass(CommunityNotification);
+CommunityNotificationSchema.index({ recipientId: 1, isRead: 1, createdAt: -1 });

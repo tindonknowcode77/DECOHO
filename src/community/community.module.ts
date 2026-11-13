@@ -5,6 +5,8 @@ import { CloudinaryModule } from '../cloudinary/cloudinary.module';
 import {
   CommunityFollow,
   CommunityFollowSchema,
+  CommunityNotification,
+  CommunityNotificationSchema,
   CommunityPost,
   CommunityPostSchema,
 } from './community.schema';
@@ -18,6 +20,7 @@ import { CommunityService } from './community.service';
     MongooseModule.forFeature([
       { name: CommunityPost.name, schema: CommunityPostSchema },
       { name: CommunityFollow.name, schema: CommunityFollowSchema },
+      { name: CommunityNotification.name, schema: CommunityNotificationSchema },
     ]),
   ],
   controllers: [CommunityController],
