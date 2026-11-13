@@ -4,11 +4,13 @@ import { Model, Types } from 'mongoose';
 import { CloudinaryService } from '../cloudinary/cloudinary.service';
 import { Product, ProductDocument } from '../products/product.schema';
 import { AddShowroomItemDto, CreateShowroomDto, UpdateShowroomDto, UpdateShowroomItemDto } from './dto/showroom.dto';
+import { SaveShowroomDesignDto, UpdateShowroomDesignDto } from './dto/showroom-design.dto';
+import { ShowroomDesign, ShowroomDesignDocument } from './showroom-design.schema';
 import { Showroom, ShowroomDocument, ShowroomStatus } from './showroom.schema';
 
 @Injectable()
 export class ShowroomsService{
-  constructor(@InjectModel(Showroom.name)private readonly model:Model<ShowroomDocument>,@InjectModel(Product.name)private readonly products:Model<ProductDocument>,private readonly cloudinary:CloudinaryService){}
+  constructor(@InjectModel(Showroom.name)private readonly model:Model<ShowroomDocument>,@InjectModel(ShowroomDesign.name)private readonly designs:Model<ShowroomDesignDocument>,@InjectModel(Product.name)private readonly products:Model<ProductDocument>,private readonly cloudinary:CloudinaryService){}
   listAdmin(){return this.model.find().sort({createdAt:-1}).populate('items.productId','name price image status').exec();}
   listPublic(){return this.model.find({status:ShowroomStatus.Published}).sort({createdAt:-1}).populate('items.productId','name price image status').exec();}
   async publicById(id:string){this.id(id);const item=await this.model.findOne({_id:new Types.ObjectId(id),status:ShowroomStatus.Published}).populate('items.productId','name price image status').exec();if(!item)throw new NotFoundException('Published showroom not found');return item;}
@@ -19,5 +21,9 @@ export class ShowroomsService{
   async addItem(id:string,dto:AddShowroomItemDto){this.id(id);if(!await this.products.exists({_id:new Types.ObjectId(dto.productId)}))throw new NotFoundException('Product not found');const item=await this.model.findByIdAndUpdate(id,{$push:{items:{...dto,productId:new Types.ObjectId(dto.productId)}}},{new:true,runValidators:true}).exec();if(!item)throw new NotFoundException('Showroom not found');return item;}
   async updateItem(id:string,itemId:string,dto:UpdateShowroomItemDto){this.id(id);this.id(itemId);const set:Record<string,unknown>={};for(const key of ['position','rotation','scale'] as const)if(dto[key])set[`items.$.${key}`]=dto[key];const item=await this.model.findOneAndUpdate({_id:new Types.ObjectId(id),'items._id':new Types.ObjectId(itemId)},{$set:set},{new:true,runValidators:true}).exec();if(!item)throw new NotFoundException('Showroom object not found');return item;}
   async deleteItem(id:string,itemId:string){this.id(id);this.id(itemId);const item=await this.model.findOneAndUpdate({_id:new Types.ObjectId(id),'items._id':new Types.ObjectId(itemId)},{$pull:{items:{_id:new Types.ObjectId(itemId)}}},{new:true}).exec();if(!item)throw new NotFoundException('Showroom object not found');return item;}
+  listUserDesigns(userId:string){this.id(userId);return this.designs.find({userId:new Types.ObjectId(userId)}).sort({updatedAt:-1}).exec();}
+  createUserDesign(userId:string,dto:SaveShowroomDesignDto){this.id(userId);return this.designs.create({userId:new Types.ObjectId(userId),name:dto.name.trim(),showroomId:dto.showroomId.trim(),showroomName:dto.showroomName?.trim()||'Phòng mẫu 3D',items:dto.items});}
+  async updateUserDesign(userId:string,designId:string,dto:UpdateShowroomDesignDto){this.id(userId);this.id(designId);const update:Record<string,unknown>={};if(dto.name!==undefined)update.name=dto.name.trim();if(dto.showroomId!==undefined)update.showroomId=dto.showroomId.trim();if(dto.showroomName!==undefined)update.showroomName=dto.showroomName.trim();if(dto.items!==undefined)update.items=dto.items;const item=await this.designs.findOneAndUpdate({_id:new Types.ObjectId(designId),userId:new Types.ObjectId(userId)},{$set:update},{new:true,runValidators:true}).exec();if(!item)throw new NotFoundException('Saved showroom design not found');return item;}
+  async deleteUserDesign(userId:string,designId:string){this.id(userId);this.id(designId);const deleted=await this.designs.findOneAndDelete({_id:new Types.ObjectId(designId),userId:new Types.ObjectId(userId)}).exec();if(!deleted)throw new NotFoundException('Saved showroom design not found');return {deleted:true};}
   private id(value:string){if(!Types.ObjectId.isValid(value))throw new BadRequestException('Invalid object id');}
 }

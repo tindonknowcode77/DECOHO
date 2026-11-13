@@ -7,6 +7,7 @@ import { Roles } from '../common/decorators/roles.decorator';
 import { Role } from '../common/enums/roles.enum';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { AddShowroomItemDto, CreateShowroomDto, UpdateShowroomDto, UpdateShowroomItemDto } from './dto/showroom.dto';
+import { SaveShowroomDesignDto, UpdateShowroomDesignDto } from './dto/showroom-design.dto';
 import { ShowroomsService } from './showrooms.service';
 
 @ApiTags('Showrooms 3D')
@@ -22,5 +23,9 @@ export class ShowroomsController{
   @Post('admin/:id/items') @UseGuards(JwtAuthGuard,RolesGuard) @Roles(Role.ADMIN) @ApiBearerAuth() addItem(@Param('id')id:string,@Body()dto:AddShowroomItemDto){return this.service.addItem(id,dto);}
   @Patch('admin/:id/items/:itemId') @UseGuards(JwtAuthGuard,RolesGuard) @Roles(Role.ADMIN) @ApiBearerAuth() updateItem(@Param('id')id:string,@Param('itemId')itemId:string,@Body()dto:UpdateShowroomItemDto){return this.service.updateItem(id,itemId,dto);}
   @Delete('admin/:id/items/:itemId') @UseGuards(JwtAuthGuard,RolesGuard) @Roles(Role.ADMIN) @ApiBearerAuth() deleteItem(@Param('id')id:string,@Param('itemId')itemId:string){return this.service.deleteItem(id,itemId);}
+  @Get('designs') @UseGuards(JwtAuthGuard) @ApiBearerAuth() @ApiOperation({summary:'List saved 3D room designs of current user'}) listDesigns(@Req()req:Request&{user?:{sub?:string}}){if(!req.user?.sub)throw new UnauthorizedException();return this.service.listUserDesigns(req.user.sub);}
+  @Post('designs') @UseGuards(JwtAuthGuard) @ApiBearerAuth() @ApiOperation({summary:'Save a 3D room design'}) createDesign(@Req()req:Request&{user?:{sub?:string}},@Body()dto:SaveShowroomDesignDto){if(!req.user?.sub)throw new UnauthorizedException();return this.service.createUserDesign(req.user.sub,dto);}
+  @Patch('designs/:designId') @UseGuards(JwtAuthGuard) @ApiBearerAuth() @ApiOperation({summary:'Update a saved 3D room design'}) updateDesign(@Req()req:Request&{user?:{sub?:string}},@Param('designId')designId:string,@Body()dto:UpdateShowroomDesignDto){if(!req.user?.sub)throw new UnauthorizedException();return this.service.updateUserDesign(req.user.sub,designId,dto);}
+  @Delete('designs/:designId') @UseGuards(JwtAuthGuard) @ApiBearerAuth() @ApiOperation({summary:'Delete a saved 3D room design'}) deleteDesign(@Req()req:Request&{user?:{sub?:string}},@Param('designId')designId:string){if(!req.user?.sub)throw new UnauthorizedException();return this.service.deleteUserDesign(req.user.sub,designId);}
   @Get(':id') @ApiOperation({summary:'Preview a published 3D showroom'}) preview(@Param('id')id:string){return this.service.publicById(id);}
 }
