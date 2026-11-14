@@ -16,6 +16,23 @@ export enum FeedbackStatus {
   ARCHIVED = 'ARCHIVED',
 }
 
+@Schema({ _id: false })
+export class FeedbackMedia {
+  @Prop({ required: true, trim: true, maxlength: 1000 })
+  url: string;
+
+  @Prop({ required: true, enum: ['image', 'video'] })
+  type: 'image' | 'video';
+
+  @Prop({ trim: true, maxlength: 300 })
+  publicId?: string;
+
+  @Prop({ trim: true, maxlength: 1000 })
+  thumbnailUrl?: string;
+}
+
+export const FeedbackMediaSchema = SchemaFactory.createForClass(FeedbackMedia);
+
 @Schema({ collection: 'feedbacks', timestamps: true, versionKey: false })
 export class Feedback {
   @Prop({
@@ -34,6 +51,9 @@ export class Feedback {
 
   @Prop({ type: [String], default: [] })
   tags: string[];
+
+  @Prop({ type: [FeedbackMediaSchema], default: [] })
+  media: FeedbackMedia[];
 
   @Prop({ type: Types.ObjectId, ref: 'Product', index: true })
   productId?: Types.ObjectId;

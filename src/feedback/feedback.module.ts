@@ -6,6 +6,7 @@ import { FeedbackController } from './feedback.controller';
 import { Product, ProductSchema } from '../products/product.schema';
 import { User, UserSchema } from '../users/user.schema';
 import { AuthModule } from '../auth/auth.module';
+import { CloudinaryModule } from '../cloudinary/cloudinary.module';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { AuthModule } from '../auth/auth.module';
       { name: User.name, schema: UserSchema },
     ]),
     AuthModule,
+    CloudinaryModule,
   ],
   controllers: [FeedbackController],
   providers: [FeedbackService],

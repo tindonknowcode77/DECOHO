@@ -1,10 +1,11 @@
-import { Injectable, Logger, BadRequestException } from '@nestjs/common';
+import { Injectable, Logger, BadRequestException, Optional } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
-import { Feedback, FeedbackDocument, FeedbackStatus, FeedbackType } from './feedback.schema';
+import { Feedback, FeedbackDocument, FeedbackMedia, FeedbackStatus, FeedbackType } from './feedback.schema';
 import { CreateFeedbackDto } from './dto/create-feedback.dto';
 import { Product, ProductDocument } from '../products/product.schema';
 import { User, UserDocument } from '../users/user.schema';
+import { CloudinaryService } from '../cloudinary/cloudinary.service';
 
 @Injectable()
 export class FeedbackService {
@@ -17,7 +18,58 @@ export class FeedbackService {
     private readonly productModel: Model<ProductDocument>,
     @InjectModel(User.name)
     private readonly userModel: Model<UserDocument>,
+    @Optional()
+    private readonly cloudinary?: CloudinaryService,
   ) {}
+
+  async uploadMedia(files: Express.Multer.File[]): Promise<FeedbackMedia[]> {
+    if (!this.cloudinary) {
+      throw new BadRequestException('Dịch vụ tải tệp chưa được cấu hình');
+    }
+    if (!files?.length) {
+      throw new BadRequestException('Vui lòng chọn ít nhất 1 ảnh hoặc video');
+    }
+    if (files.length > 5) {
+      throw new BadRequestException('Tối đa 5 ảnh/video cho mỗi đánh giá');
+    }
+
+    const allowed = [
+      'image/jpeg',
+      'image/png',
+      'image/webp',
+      'video/mp4',
+      'video/webm',
+      'video/quicktime',
+    ];
+    for (const file of files) {
+      if (!allowed.includes(file.mimetype)) {
+        throw new BadRequestException('Chỉ hỗ trợ ảnh (JPG, PNG, WEBP) và video (MP4, WEBM, MOV)');
+      }
+      const maxBytes = (file.mimetype.startsWith('video/') ? 50 : 10) * 1024 * 1024;
+      if (file.size > maxBytes) {
+        throw new BadRequestException(
+          file.mimetype.startsWith('video/')
+            ? 'Video không được vượt quá 50MB'
+            : 'Mỗi ảnh không được vượt quá 10MB',
+        );
+      }
+    }
+
+    return Promise.all(
+      files.map(async (file) => {
+        const isVideo = file.mimetype.startsWith('video/');
+        const uploaded = isVideo
+          ? await this.cloudinary!.uploadVideo(file, 'decoho/feedback')
+          : await this.cloudinary!.uploadImage(file, 'decoho/feedback');
+        return {
+          url: uploaded.secureUrl,
+          publicId: uploaded.publicId,
+          type: isVideo ? ('video' as const) : ('image' as const),
+          thumbnailUrl: uploaded.thumbnailUrl ?? uploaded.secureUrl,
+        };
+      }),
+    );
+  }
 
   private isValidObjectId(id?: string): boolean {
     if (!id || typeof id !== 'string') return false;
@@ -52,11 +104,24 @@ export class FeedbackService {
 
     const type = dto.type || (productObjId ? FeedbackType.PRODUCT : FeedbackType.WEBSITE);
 
+    const sanitizedMedia: FeedbackMedia[] = Array.isArray(dto.media)
+      ? dto.media
+          .filter((item) => item?.url && (item.type === 'image' || item.type === 'video'))
+          .slice(0, 5)
+          .map((item) => ({
+            url: item.url.trim(),
+            type: item.type,
+            ...(item.publicId ? { publicId: item.publicId.trim() } : {}),
+            ...(item.thumbnailUrl ? { thumbnailUrl: item.thumbnailUrl.trim() } : {}),
+          }))
+      : [];
+
     const feedback = await this.feedbackModel.create({
       type,
       rating: Number(dto.rating),
       content: dto.content.trim(),
       tags: Array.isArray(dto.tags) ? dto.tags : [],
+      media: sanitizedMedia,
       productId: productObjId,
       productName,
       userId: userObjId,

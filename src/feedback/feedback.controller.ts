@@ -7,9 +7,13 @@ import {
   Post,
   Query,
   Req,
+  UploadedFiles,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { FilesInterceptor } from '@nestjs/platform-express';
+import { ApiBearerAuth, ApiConsumes, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { memoryStorage } from 'multer';
 import { Request } from 'express';
 import { JwtService } from '@nestjs/jwt';
 import { FeedbackService } from './feedback.service';
@@ -27,6 +31,25 @@ export class FeedbackController {
     private readonly feedbackService: FeedbackService,
     private readonly jwtService: JwtService,
   ) {}
+
+  @Post('upload-media')
+  @ApiOperation({
+    summary: 'Upload ảnh hoặc video thực tế khi nhận hàng cho đánh giá / góp ý',
+  })
+  @ApiConsumes('multipart/form-data')
+  @UseInterceptors(
+    FilesInterceptor('files', 5, {
+      storage: memoryStorage(),
+      limits: { fileSize: 50 * 1024 * 1024 },
+    }),
+  )
+  async uploadMedia(@UploadedFiles() files: Express.Multer.File[]) {
+    const data = await this.feedbackService.uploadMedia(files);
+    return {
+      success: true,
+      data,
+    };
+  }
 
   @Post()
   @ApiOperation({
