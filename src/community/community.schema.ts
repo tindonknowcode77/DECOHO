@@ -95,3 +95,34 @@ export class CommunityNotification {
 }
 export const CommunityNotificationSchema = SchemaFactory.createForClass(CommunityNotification);
 CommunityNotificationSchema.index({ recipientId: 1, isRead: 1, createdAt: -1 });
+
+export type CommunityStoryDocument = HydratedDocument<CommunityStory>;
+@Schema({ collection: 'community_stories', timestamps: true, versionKey: false })
+export class CommunityStory {
+  @Prop({ type: Types.ObjectId, ref: 'User', required: true, index: true })
+  userId: Types.ObjectId;
+
+  @Prop({ required: true, trim: true, maxlength: 1000 })
+  mediaUrl: string;
+
+  @Prop({ required: true, trim: true, maxlength: 300 })
+  mediaPublicId: string;
+
+  @Prop({ required: true, enum: ['image', 'video'] })
+  mediaType: 'image' | 'video';
+
+  @Prop({ trim: true, maxlength: 1000 })
+  thumbnailUrl?: string;
+
+  @Prop({ trim: true, maxlength: 300 })
+  caption?: string;
+
+  @Prop({ type: [Types.ObjectId], ref: 'User', default: [] })
+  viewedBy: Types.ObjectId[];
+
+  @Prop({ required: true, default: () => new Date(Date.now() + 24 * 60 * 60 * 1000) })
+  expiresAt: Date;
+}
+export const CommunityStorySchema = SchemaFactory.createForClass(CommunityStory);
+CommunityStorySchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+CommunityStorySchema.index({ createdAt: -1 });

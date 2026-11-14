@@ -9,6 +9,8 @@ import {
   CommunityNotificationSchema,
   CommunityPost,
   CommunityPostSchema,
+  CommunityStory,
+  CommunityStorySchema,
 } from './community.schema';
 import { CommunityController } from './community.controller';
 import { CommunityService } from './community.service';
@@ -21,6 +23,7 @@ import { CommunityService } from './community.service';
       { name: CommunityPost.name, schema: CommunityPostSchema },
       { name: CommunityFollow.name, schema: CommunityFollowSchema },
       { name: CommunityNotification.name, schema: CommunityNotificationSchema },
+      { name: CommunityStory.name, schema: CommunityStorySchema },
     ]),
   ],
   controllers: [CommunityController],

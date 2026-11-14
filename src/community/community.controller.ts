@@ -11,9 +11,12 @@ import {
   Query,
   Req,
   UnauthorizedException,
+  UploadedFile,
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
+import { AuthGuard } from '@nestjs/passport';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiBearerAuth, ApiConsumes, ApiTags } from '@nestjs/swagger';
 import { Request } from 'express';
 import multer from 'multer';
@@ -71,6 +74,12 @@ export function FlexibleFilesInterceptor() {
   }
 
   return mixin(FlexibleFilesInterceptorHost);
+}
+
+class OptionalJwtAuthGuard extends AuthGuard('jwt') {
+  handleRequest<TUser = unknown>(_err: unknown, user: TUser): TUser {
+    return (user || undefined) as TUser;
+  }
 }
 
 @ApiTags('Community')
@@ -265,6 +274,44 @@ export class CommunityController {
   @ApiBearerAuth()
   markNotificationRead(@Req() req: AuthRequest, @Param('id') id: string) {
     return this.service.markNotificationRead(this.user(req), id);
+  }
+
+  @Get('stories')
+  @UseGuards(OptionalJwtAuthGuard)
+  listStories(@Req() req: AuthRequest) {
+    return this.service.listStories(req.user?.sub);
+  }
+
+  @Post('stories')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiConsumes('multipart/form-data')
+  @UseInterceptors(
+    FileInterceptor('media', {
+      storage: multer.memoryStorage(),
+      limits: { fileSize: 50 * 1024 * 1024 },
+    }),
+  )
+  createStory(
+    @Req() req: AuthRequest,
+    @Body('caption') caption: string | undefined,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    return this.service.createStory(this.user(req), caption, file);
+  }
+
+  @Post('stories/:id/view')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  viewStory(@Req() req: AuthRequest, @Param('id') id: string) {
+    return this.service.markStoryViewed(this.user(req), id);
+  }
+
+  @Delete('stories/:id')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  deleteStory(@Req() req: AuthRequest, @Param('id') id: string) {
+    return this.service.deleteOwnStory(this.user(req), id);
   }
 
   private user(req: AuthRequest) {

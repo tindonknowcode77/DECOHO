@@ -11,6 +11,8 @@ import {
   CommunityNotificationType,
   CommunityPost,
   CommunityPostDocument,
+  CommunityStory,
+  CommunityStoryDocument,
 } from './community.schema';
 
 const MAX_MEDIA = 10;
@@ -22,6 +24,7 @@ export class CommunityService {
     @InjectModel(CommunityFollow.name) private readonly follows: Model<CommunityFollowDocument>,
     private readonly cloudinary: CloudinaryService,
     @Optional() @InjectModel(CommunityNotification.name) private readonly notifications?: Model<CommunityNotificationDocument>,
+    @Optional() @InjectModel(CommunityStory.name) private readonly stories?: Model<CommunityStoryDocument>,
   ) {}
 
   async adminPosts(q = '', status = 'all', page = 1) {
@@ -562,5 +565,139 @@ export class CommunityService {
     } catch {
       // Do not fail core community action if notification creation fails.
     }
+  }
+
+  async listStories(userId?: string) {
+    if (!this.stories) return { groups: [] };
+    const now = new Date();
+    const rows = await this.stories
+      .find({ expiresAt: { $gt: now } })
+      .populate('userId', 'fullName avatar')
+      .sort({ createdAt: 1 })
+      .lean()
+      .exec();
+
+    const groupMap = new Map<
+      string,
+      {
+        user: { _id: string; fullName: string; avatar?: string };
+        hasUnseen: boolean;
+        latestAt: string;
+        stories: Array<{
+          _id: string;
+          mediaUrl: string;
+          mediaType: 'image' | 'video';
+          thumbnailUrl?: string;
+          caption?: string;
+          createdAt: string;
+          expiresAt: string;
+          viewedByMe: boolean;
+        }>;
+      }
+    >();
+
+    for (const row of rows) {
+      const author = row.userId as unknown as { _id?: Types.ObjectId; fullName?: string; avatar?: string } | null;
+      const authorId = author?._id ? String(author._id) : String(row.userId);
+      const viewedByMe = Boolean(
+        userId && Array.isArray(row.viewedBy) && row.viewedBy.some((id) => String(id) === userId),
+      );
+      const createdAt = String((row as unknown as { createdAt?: Date }).createdAt ?? new Date().toISOString());
+      const item = {
+        _id: String(row._id),
+        mediaUrl: row.mediaUrl,
+        mediaType: row.mediaType,
+        thumbnailUrl: row.thumbnailUrl,
+        caption: row.caption,
+        createdAt,
+        expiresAt: String(row.expiresAt),
+        viewedByMe,
+      };
+      const existing = groupMap.get(authorId);
+      if (existing) {
+        existing.stories.push(item);
+        if (!viewedByMe) existing.hasUnseen = true;
+        existing.latestAt = createdAt;
+      } else {
+        groupMap.set(authorId, {
+          user: {
+            _id: authorId,
+            fullName: author?.fullName || 'Thành viên DECOHO',
+            avatar: author?.avatar,
+          },
+          hasUnseen: !viewedByMe,
+          latestAt: createdAt,
+          stories: [item],
+        });
+      }
+    }
+
+    const groups = Array.from(groupMap.values()).sort((a, b) => {
+      if (userId && a.user._id === userId) return -1;
+      if (userId && b.user._id === userId) return 1;
+      if (a.hasUnseen !== b.hasUnseen) return a.hasUnseen ? -1 : 1;
+      return new Date(b.latestAt).getTime() - new Date(a.latestAt).getTime();
+    });
+
+    return { groups };
+  }
+
+  async createStory(userId: string, caption: string | undefined, file: Express.Multer.File) {
+    this.id(userId);
+    if (!this.stories) throw new BadRequestException('Stories module is unavailable');
+    if (!file) throw new BadRequestException('Vui lòng chọn ảnh hoặc video để đăng tin');
+    const allowed = ['image/jpeg', 'image/png', 'image/webp', 'video/mp4', 'video/webm', 'video/quicktime'];
+    if (!allowed.includes(file.mimetype)) {
+      throw new BadRequestException('Chỉ hỗ trợ ảnh (JPG, PNG, WEBP) hoặc video (MP4, WEBM, MOV)');
+    }
+    const isVideo = file.mimetype.startsWith('video/');
+    const maxBytes = (isVideo ? 50 : 10) * 1024 * 1024;
+    if (file.size > maxBytes) {
+      throw new BadRequestException(isVideo ? 'Video tối đa 50MB' : 'Ảnh tối đa 10MB');
+    }
+
+    const uploaded = isVideo
+      ? await this.cloudinary.uploadVideo(file, 'decoho/stories')
+      : await this.cloudinary.uploadImage(file, 'decoho/stories');
+
+    const created = await this.stories.create({
+      userId: new Types.ObjectId(userId),
+      mediaUrl: uploaded.secureUrl,
+      mediaPublicId: uploaded.publicId,
+      mediaType: isVideo ? 'video' : 'image',
+      thumbnailUrl: uploaded.thumbnailUrl ?? uploaded.secureUrl,
+      caption: caption?.trim().slice(0, 300) || undefined,
+      viewedBy: [new Types.ObjectId(userId)],
+      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+    });
+
+    return created;
+  }
+
+  async markStoryViewed(userId: string, storyId: string) {
+    this.id(userId);
+    this.id(storyId);
+    if (!this.stories) return { ok: true };
+    await this.stories
+      .updateOne(
+        { _id: new Types.ObjectId(storyId) },
+        { $addToSet: { viewedBy: new Types.ObjectId(userId) } },
+      )
+      .exec();
+    return { ok: true };
+  }
+
+  async deleteOwnStory(userId: string, storyId: string) {
+    this.id(userId);
+    this.id(storyId);
+    if (!this.stories) throw new NotFoundException('Story not found');
+    const deleted = await this.stories
+      .findOneAndDelete({
+        _id: new Types.ObjectId(storyId),
+        userId: new Types.ObjectId(userId),
+      })
+      .exec();
+    if (!deleted) throw new NotFoundException('Không tìm thấy tin hoặc bạn không có quyền xóa');
+    return { deleted: true, storyId };
   }
 }
